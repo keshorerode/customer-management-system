@@ -12,7 +12,8 @@ import {
   Settings,
   Mail,
   HelpCircle,
-  LogOut
+  LogOut,
+  Mountain
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -38,10 +39,10 @@ export function Sidebar() {
     <aside className="w-64 h-screen border-r border-slate-200 flex flex-col fixed left-0 top-0 bg-white z-20">
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-6 h-16 border-b border-slate-100">
-        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-sm shadow-indigo-200">
-          20
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-white shadow-sm shadow-primary/30">
+          <Mountain size={18} />
         </div>
-        <span className="font-bold text-xl tracking-tight text-slate-900 font-inter">Twenty</span>
+        <span className="font-bold text-xl tracking-tight text-slate-900 font-inter">WERSEL</span>
       </div>
       
       {/* Navigation */}
@@ -58,7 +59,7 @@ export function Sidebar() {
                 isActive && "active"
               )}
             >
-              <item.icon size={18} className={cn(isActive ? "text-indigo-600" : "text-slate-400")} />
+              <item.icon size={18} className={cn(isActive ? "text-primary" : "text-slate-400")} />
               <span>{item.label}</span>
             </Link>
           );
@@ -78,7 +79,7 @@ export function Sidebar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white border border-slate-200 shadow-sm transition-all hover:border-indigo-200 group cursor-pointer">
+        <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white border border-slate-200 shadow-sm transition-all hover:border-primary/30 group cursor-pointer">
           <div className="relative">
             <div className="w-9 h-9 rounded-lg bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-600 border border-pink-200 group-hover:scale-105 transition-transform">
               JD
