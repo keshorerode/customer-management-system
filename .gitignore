@@ -43,3 +43,8 @@ frontend/.next/
 frontend/node_modules/
 frontend/dist/
 frontend_old/
+
+# Sensitive credentials - DO NOT COMMIT
+client_secret_*.json
+gmail_API_DETAILS.png
+*.apps.googleusercontent.com.json
