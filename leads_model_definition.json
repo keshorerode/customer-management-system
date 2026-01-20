@@ -1,0 +1,146 @@
+{
+  "modelName": "Lead",
+  "baseEntity": "Person",
+  "description": "The core entity representing a potential customer or contact in the CRM ecosystem.",
+  "schema": {
+    "fields": [
+      {
+        "name": "name",
+        "type": "String",
+        "required": true,
+        "description": "Full name of the lead"
+      },
+      {
+        "name": "emails",
+        "type": "Array<String>",
+        "required": false,
+        "description": "List of email addresses associated with the lead"
+      },
+      {
+        "name": "phones",
+        "type": "Array<String>",
+        "required": false,
+        "description": "List of phone numbers associated with the lead"
+      },
+      {
+        "name": "company",
+        "type": "String",
+        "required": false,
+        "description": "Company name the lead is associated with"
+      },
+      {
+        "name": "jobTitle",
+        "type": "String",
+        "required": false,
+        "description": "Professional title of the lead"
+      },
+      {
+        "name": "city",
+        "type": "String",
+        "required": false,
+        "description": "Physical location (City)"
+      },
+      {
+        "name": "leads",
+        "type": "Enum",
+        "values": ["Low", "Medium", "High"],
+        "default": "Medium",
+        "description": "Priority or lead score level"
+      },
+      {
+        "name": "linkedin",
+        "type": "String",
+        "required": false,
+        "description": "URL to LinkedIn profile"
+      },
+      {
+        "name": "twitter",
+        "type": "String",
+        "required": false,
+        "description": "URL to X (Twitter) profile"
+      },
+      {
+        "name": "createdBy",
+        "type": "String",
+        "description": "User who created the record"
+      },
+      {
+        "name": "updatedBy",
+        "type": "String",
+        "description": "User who last updated the record"
+      },
+      {
+        "name": "deletedAt",
+        "type": "Date",
+        "description": "Soft delete timestamp"
+      },
+      {
+        "name": "createdAt",
+        "type": "Date",
+        "description": "Automatic timestamp for creation"
+      },
+      {
+        "name": "updatedAt",
+        "type": "Date",
+        "description": "Automatic timestamp for last update"
+      }
+    ],
+    "relationships": [
+      {
+        "entity": "Note",
+        "type": "One-to-Many",
+        "foreignKey": "personId",
+        "fields": {
+          "content": "String (Required)",
+          "createdBy": "String",
+          "timestamps": "Boolean"
+        }
+      },
+      {
+        "entity": "Task",
+        "type": "One-to-Many",
+        "foreignKey": "personId",
+        "fields": {
+          "title": "String (Required)",
+          "description": "String",
+          "dueDate": "Date",
+          "status": "Enum ['Todo', 'In Progress', 'Done']",
+          "createdBy": "String"
+        }
+      },
+      {
+        "entity": "Opportunity",
+        "type": "One-to-Many",
+        "foreignKey": "personId",
+        "fields": {
+          "title": "String (Required)",
+          "value": "Number (Default: 0)",
+          "status": "Enum ['Lead', 'Qualified', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost']",
+          "createdBy": "String"
+        }
+      }
+    ]
+  },
+  "sampleData": [
+    {
+      "name": "Brian Chesky",
+      "emails": ["chesky@airbnb.com"],
+      "company": "Airbnb",
+      "city": "San Francisco",
+      "jobTitle": "CEO",
+      "leads": "High",
+      "phones": ["+1 415 555 0101"],
+      "linkedin": "https://linkedin.com/in/brianchesky",
+      "twitter": "https://twitter.com/bchesky"
+    },
+    {
+      "name": "Dario Amodei",
+      "emails": ["amodei@anthropic.com"],
+      "company": "Anthropic",
+      "city": "San Francisco",
+      "jobTitle": "CEO",
+      "leads": "Medium",
+      "phones": ["+1 415 555 0102"]
+    }
+  ]
+}
