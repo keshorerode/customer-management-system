@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Mail, Phone, MapPin, MoreHorizontal, Linkedin, Twitter, Plus, X, Building2, Briefcase, User, Filter, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PersonFormDrawer from '@/components/PersonFormDrawer';
 
 interface Person {
   id: string;
@@ -14,12 +15,14 @@ interface Person {
   jobTitle: string;
   city: string;
   avatarUrl: string;
-  company?: { name: string };
+  company?: { name: string; id: string };
 }
 
 export default function PeoplePage() {
   const [people, setPeople] = useState<Person[]>([]);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -35,14 +38,39 @@ export default function PeoplePage() {
       // Fallback with dummy data if needed
       if (people.length === 0) {
         setPeople([
-            { id: '1', firstName: 'Alice', lastName: 'Johnson', email: 'alice@techcorp.com', phone: '+1 234 567 890', jobTitle: 'Product Manager', city: 'San Francisco', avatarUrl: '', company: { name: 'TechCorp' } },
-            { id: '2', firstName: 'Bob', lastName: 'Smith', email: 'bob@acme.inc', phone: '+1 987 654 321', jobTitle: 'Software Engineer', city: 'New York', avatarUrl: '', company: { name: 'Acme Inc' } },
-            { id: '3', firstName: 'Charlie', lastName: 'Davis', email: 'charlie@nexus.hub', phone: '+1 345 678 901', jobTitle: 'Design Lead', city: 'Austin', avatarUrl: '', company: { name: 'Nexus Hub' } },
+            { id: '1', firstName: 'Alice', lastName: 'Johnson', email: 'alice@techcorp.com', phone: '+1 234 567 890', jobTitle: 'Product Manager', city: 'San Francisco', avatarUrl: '', company: { name: 'TechCorp', id: '1' } },
+            { id: '2', firstName: 'Bob', lastName: 'Smith', email: 'bob@acme.inc', phone: '+1 987 654 321', jobTitle: 'Software Engineer', city: 'New York', avatarUrl: '', company: { name: 'Acme Inc', id: '2' } },
+            { id: '3', firstName: 'Charlie', lastName: 'Davis', email: 'charlie@nexus.hub', phone: '+1 345 678 901', jobTitle: 'Design Lead', city: 'Austin', avatarUrl: '', company: { name: 'Nexus Hub', id: '3' } },
         ]);
       }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSave = (savedPerson: Person) => {
+      setPeople(prev => {
+          const exists = prev.find(p => p.id === savedPerson.id);
+          if (exists) {
+              return prev.map(p => p.id === savedPerson.id ? savedPerson : p);
+          }
+          return [savedPerson, ...prev];
+      });
+      setIsFormOpen(false);
+      setEditingPerson(null);
+      if (selectedPerson && selectedPerson.id === savedPerson.id) {
+          setSelectedPerson(savedPerson);
+      }
+  };
+
+  const handleEdit = () => {
+      setEditingPerson(selectedPerson);
+      setIsFormOpen(true);
+  };
+
+  const openNewPersonForm = () => {
+      setEditingPerson(null);
+      setIsFormOpen(true);
   };
 
   return (
@@ -57,7 +85,10 @@ export default function PeoplePage() {
                 <Download size={16} />
                 <span>Export</span>
             </button>
-            <button className="btn-primary h-10 px-5">
+            <button 
+                onClick={openNewPersonForm}
+                className="btn-primary h-10 px-5"
+            >
                 <Plus size={18} />
                 <span>Add Person</span>
             </button>
@@ -243,13 +274,25 @@ export default function PeoplePage() {
 
               {/* Drawer Action Footer */}
               <div className="p-6 border-t border-slate-100 bg-white grid grid-cols-2 gap-4">
-                <button className="btn-secondary h-12 flex items-center justify-center font-black uppercase tracking-widest text-[11px]">Edit Detail</button>
+                <button 
+                    onClick={handleEdit}
+                    className="btn-secondary h-12 flex items-center justify-center font-black uppercase tracking-widest text-[11px]"
+                >
+                    Edit Detail
+                </button>
                 <button className="btn-primary h-12 flex items-center justify-center font-black uppercase tracking-widest text-[11px] shadow-indigo-100">Send Pulse</button>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
+
+      <PersonFormDrawer 
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSave={handleSave}
+        initialData={editingPerson}
+      />
     </div>
   );
 }

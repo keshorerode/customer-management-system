@@ -30,6 +30,9 @@ AppDataSource.initialize().then(() => {
             let relations: string[] = [];
             if (path === 'people') relations = ['company'];
             else if (path === 'opportunities') relations = ['company', 'pointOfContact'];
+            else if (path === 'companies') relations = ['people', 'opportunities', 'tasks', 'notes'];
+            else if (path === 'tasks') relations = ['company'];
+            else if (path === 'notes') relations = ['company'];
             else if (path === 'leads') relations = [];
 
             const items = await repo.find({ relations });
@@ -40,6 +43,9 @@ AppDataSource.initialize().then(() => {
             let relations: string[] = [];
             if (path === 'people') relations = ['company'];
             else if (path === 'opportunities') relations = ['company', 'pointOfContact'];
+            else if (path === 'companies') relations = ['people', 'opportunities', 'tasks', 'notes'];
+            else if (path === 'tasks') relations = ['company'];
+            else if (path === 'notes') relations = ['company'];
             else if (path === 'leads') relations = [];
 
             const item = await repo.findOne({
