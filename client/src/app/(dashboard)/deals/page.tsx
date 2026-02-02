@@ -16,17 +16,20 @@ interface Deal {
   company_id?: string;
   contact_id?: string;
   expected_close_date?: string;
+  description?: string;
 }
 
 export default function DealsPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [formData, setFormData] = useState({
     title: "",
-    value: "",
+    value: 0,
     stage: "Qualification",
-    probability: "20",
+    probability: 20,
     company_id: "",
-    expected_close_date: ""
+    expected_close_date: "",
+    description: ""
   });
   const [formError, setFormError] = useState("");
   
@@ -50,27 +53,60 @@ export default function DealsPage() {
     }
   });
 
-  // 3. Create Deal Mutation
-  const createDeal = useMutation({
-    mutationFn: (newDeal: any) => api.post("/deals/", newDeal),
+  // 3. Create/Update Deal Mutation
+  const dealMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (selectedDeal) {
+        return api.put(`/deals/${selectedDeal.id}`, data);
+      }
+      return api.post("/deals/", data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deals"] });
-      setIsDrawerOpen(false);
-      setFormData({ title: "", value: "", stage: "Qualification", probability: "20", company_id: "", expected_close_date: "" });
+      closeDrawer();
     },
     onError: (err: any) => {
-      setFormError(err.response?.data?.detail || "Failed to create deal");
+      setFormError(err.response?.data?.detail || "Something went wrong");
     }
   });
+
+  // 4. Delete Deal Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/deals/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deals"] });
+    }
+  });
+
+  const openDrawer = (deal?: Deal) => {
+    if (deal) {
+      setSelectedDeal(deal);
+      setFormData({
+        title: deal.title,
+        value: deal.value,
+        stage: deal.stage,
+        probability: deal.probability,
+        company_id: deal.company_id || "",
+        expected_close_date: deal.expected_close_date || "",
+        description: deal.description || ""
+      });
+    } else {
+      setSelectedDeal(null);
+      setFormData({ title: "", value: 0, stage: "Qualification", probability: 20, company_id: "", expected_close_date: "", description: "" });
+    }
+    setIsDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedDeal(null);
+    setFormError("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-    createDeal.mutate({
-      ...formData,
-      value: parseFloat(formData.value) || 0,
-      probability: parseInt(formData.probability) || 20
-    });
+    dealMutation.mutate(formData);
   };
 
   const getStageColor = (stage: string) => {
@@ -91,7 +127,7 @@ export default function DealsPage() {
           <p className="text-text-secondary text-sm">Track your sales pipeline and opportunities</p>
         </div>
         <button 
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={() => openDrawer()}
           className="bg-brand-primary hover:bg-brand-accent text-white px-4 py-2 rounded-md font-bold flex items-center gap-2 transition-all shadow-lg shadow-brand-primary/20 transform active:scale-[0.98]"
         >
           <Plus size={18} />
@@ -126,7 +162,7 @@ export default function DealsPage() {
           <h3 className="text-white font-bold">No deals tracked yet</h3>
           <p className="text-text-secondary text-sm mt-1">Create your first deal to start tracking revenue.</p>
           <button 
-            onClick={() => setIsDrawerOpen(true)}
+            onClick={() => openDrawer()}
             className="mt-6 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-4 py-2 rounded-md font-bold transition-all"
           >
             Create Deal
@@ -141,9 +177,22 @@ export default function DealsPage() {
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border ${getStageColor(deal.stage)}`}>
                   {deal.stage}
                 </span>
-                <button className="text-text-tertiary hover:text-white transition-colors">
-                  <MoreVertical size={18} />
-                </button>
+                <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => openDrawer(deal)}
+                    className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
+                  >
+                    <Filter size={16} />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (confirm(`Delete ${deal.title}?`)) deleteMutation.mutate(deal.id);
+                    }}
+                    className="p-1 hover:text-danger text-text-tertiary transition-colors"
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                </div>
               </div>
 
               <h3 className="text-lg font-bold text-white group-hover:text-brand-primary transition-colors line-clamp-1 mb-2">
@@ -196,9 +245,9 @@ export default function DealsPage() {
       {/* SlideOver Form */}
       <SlideOver 
         isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)}
-        title="Add New Deal"
-        description="Track a new sales opportunity"
+        onClose={closeDrawer}
+        title={selectedDeal ? "Edit Deal" : "Add New Deal"}
+        description={selectedDeal ? "Update deal progress" : "Capture a new business opportunity"}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {formError && (
@@ -226,8 +275,7 @@ export default function DealsPage() {
                 <input 
                   required
                   type="number" 
-                  value={formData.value}
-                  onChange={(e) => setFormData({...formData, value: e.target.value})}
+                  value={formData.value} onChange={e => setFormData({...formData, value: Number(e.target.value)})}
                   placeholder="50000" 
                   className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm text-success font-bold"
                 />
@@ -263,8 +311,7 @@ export default function DealsPage() {
                 <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Probability (%)</label>
                 <input 
                   type="number" 
-                  value={formData.probability}
-                  onChange={(e) => setFormData({...formData, probability: e.target.value})}
+                  value={formData.probability} onChange={e => setFormData({...formData, probability: Number(e.target.value)})}
                   placeholder="20" 
                   className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
                 />
@@ -289,18 +336,18 @@ export default function DealsPage() {
           <div className="pt-6 border-t border-border-main flex gap-3">
             <button 
               type="button"
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={closeDrawer}
               className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-md transition-all"
             >
               Cancel
             </button>
             <button 
               type="submit"
-              disabled={createDeal.isPending}
+              disabled={dealMutation.isPending}
               className="flex-1 bg-brand-primary hover:bg-brand-accent text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {createDeal.isPending && <Loader2 className="animate-spin" size={18} />}
-              {createDeal.isPending ? "Creating..." : "Save Deal"}
+              {dealMutation.isPending && <Loader2 className="animate-spin" size={18} />}
+              {dealMutation.isPending ? "Saving..." : (selectedDeal ? "Update Deal" : "Save Deal")}
             </button>
           </div>
         </form>

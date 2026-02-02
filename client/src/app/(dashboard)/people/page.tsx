@@ -20,6 +20,7 @@ interface Person {
 
 export default function PeoplePage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -50,23 +51,59 @@ export default function PeoplePage() {
     }
   });
 
-  // 3. Create Person Mutation
-  const createPerson = useMutation({
-    mutationFn: (newPerson: any) => api.post("/people/", newPerson),
+  // 3. Create/Update Person Mutation
+  const personMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (selectedPerson) {
+        return api.put(`/people/${selectedPerson.id}`, data);
+      }
+      return api.post("/people/", data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["people"] });
-      setIsDrawerOpen(false);
-      setFormData({ first_name: "", last_name: "", email: "", job_title: "", phone: "", company_id: "" });
+      closeDrawer();
     },
     onError: (err: any) => {
-      setFormError(err.response?.data?.detail || "Failed to create contact");
+      setFormError(err.response?.data?.detail || "Something went wrong");
     }
   });
+
+  // 4. Delete Person Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/people/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["people"] });
+    }
+  });
+
+  const openDrawer = (person?: Person) => {
+    if (person) {
+      setSelectedPerson(person);
+      setFormData({
+        first_name: person.first_name,
+        last_name: person.last_name,
+        email: person.email,
+        job_title: person.job_title || "",
+        phone: person.phone || "",
+        company_id: person.company_id || ""
+      });
+    } else {
+      setSelectedPerson(null);
+      setFormData({ first_name: "", last_name: "", email: "", job_title: "", phone: "", company_id: "" });
+    }
+    setIsDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedPerson(null);
+    setFormError("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-    createPerson.mutate(formData);
+    personMutation.mutate(formData);
   };
 
   return (
@@ -78,7 +115,7 @@ export default function PeoplePage() {
           <p className="text-text-secondary text-sm">Manage your contacts and their relationships</p>
         </div>
         <button 
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={() => openDrawer()}
           className="bg-brand-primary hover:bg-brand-accent text-white px-4 py-2 rounded-md font-bold flex items-center gap-2 transition-all shadow-lg shadow-brand-primary/20 transform active:scale-[0.98]"
         >
           <Plus size={18} />
@@ -113,7 +150,7 @@ export default function PeoplePage() {
           <h3 className="text-white font-bold">No contacts found</h3>
           <p className="text-text-secondary text-sm mt-1">Add your first contact to start building relationships.</p>
           <button 
-            onClick={() => setIsDrawerOpen(true)}
+            onClick={() => openDrawer()}
             className="mt-6 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-4 py-2 rounded-md font-bold transition-all"
           >
             Create Contact
@@ -124,9 +161,22 @@ export default function PeoplePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {people?.filter(p => p && p.id).map((person) => (
             <div key={person.id} className="bg-bg-surface border border-border-main rounded-card p-6 hover:border-brand-primary/40 transition-all group relative">
-              <button className="absolute top-4 right-4 text-text-tertiary hover:text-white transition-colors">
-                <MoreVertical size={18} />
-              </button>
+              <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => openDrawer(person)}
+                  className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
+                >
+                  <Filter size={16} /> {/* Edit icon placeholder */}
+                </button>
+                <button 
+                  onClick={() => {
+                    if (confirm(`Delete ${person.first_name}?`)) deleteMutation.mutate(person.id);
+                  }}
+                  className="p-1 hover:text-danger text-text-tertiary transition-colors"
+                >
+                  <MoreVertical size={16} />
+                </button>
+              </div>
               
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary mb-4 border border-brand-primary/20 text-xl font-bold">
@@ -165,9 +215,9 @@ export default function PeoplePage() {
       {/* SlideOver Form */}
       <SlideOver 
         isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)}
-        title="Add New Person"
-        description="Create a new contact profile"
+        onClose={closeDrawer}
+        title={selectedPerson ? "Edit Person" : "Add New Person"}
+        description={selectedPerson ? "Update contact profile" : "Create a new contact profile"}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {formError && (
@@ -254,18 +304,18 @@ export default function PeoplePage() {
           <div className="pt-6 border-t border-border-main flex gap-3">
             <button 
               type="button"
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={closeDrawer}
               className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-md transition-all"
             >
               Cancel
             </button>
             <button 
               type="submit"
-              disabled={createPerson.isPending}
+              disabled={personMutation.isPending}
               className="flex-1 bg-brand-primary hover:bg-brand-accent text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {createPerson.isPending && <Loader2 className="animate-spin" size={18} />}
-              {createPerson.isPending ? "Creating..." : "Save Contact"}
+              {personMutation.isPending && <Loader2 className="animate-spin" size={18} />}
+              {personMutation.isPending ? "Saving..." : (selectedPerson ? "Update Contact" : "Save Contact")}
             </button>
           </div>
         </form>

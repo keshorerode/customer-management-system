@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, MoreVertical, CheckSquare, Loader2, Calendar, Clock } from "lucide-react";
+import { Search, Plus, Filter, MoreVertical, Calendar, CheckSquare, Loader2, Building2 } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
 import SlideOver from "@/components/SlideOver";
@@ -19,13 +19,13 @@ interface Task {
 
 export default function TasksPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState({
     title: "",
-    description: "",
-    due_date: "",
     priority: "Medium",
-    status: "Todo",
-    related_company_id: ""
+    due_date: "",
+    related_company_id: "",
+    description: ""
   });
   const [formError, setFormError] = useState("");
   
@@ -49,23 +49,58 @@ export default function TasksPage() {
     }
   });
 
-  // 3. Create Task Mutation
-  const createTask = useMutation({
-    mutationFn: (newTask: any) => api.post("/tasks/", newTask),
+  // 2. Create/Update Task Mutation
+  const taskMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (selectedTask) {
+        return api.put(`/tasks/${selectedTask.id}`, data);
+      }
+      return api.post("/tasks/", data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      setIsDrawerOpen(false);
-      setFormData({ title: "", description: "", due_date: "", priority: "Medium", status: "Todo", related_company_id: "" });
+      closeDrawer();
     },
     onError: (err: any) => {
-      setFormError(err.response?.data?.detail || "Failed to create task");
+      setFormError(err.response?.data?.detail || "Something went wrong");
     }
   });
+
+  // 3. Delete Task Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/tasks/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    }
+  });
+
+  const openDrawer = (task?: Task) => {
+    if (task) {
+      setSelectedTask(task);
+      setFormData({
+        title: task.title,
+        priority: task.priority || "Medium",
+        due_date: task.due_date ? task.due_date.split('T')[0] : "",
+        related_company_id: task.related_company_id || "",
+        description: task.description || ""
+      });
+    } else {
+      setSelectedTask(null);
+      setFormData({ title: "", priority: "Medium", due_date: "", related_company_id: "", description: "" });
+    }
+    setIsDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedTask(null);
+    setFormError("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-    createTask.mutate(formData);
+    taskMutation.mutate(formData);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -86,7 +121,7 @@ export default function TasksPage() {
           <p className="text-text-secondary text-sm">Organize your workflow and follow-ups</p>
         </div>
         <button 
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={() => openDrawer()}
           className="bg-brand-primary hover:bg-brand-accent text-white px-4 py-2 rounded-md font-bold flex items-center gap-2 transition-all shadow-lg shadow-brand-primary/20 transform active:scale-[0.98]"
         >
           <Plus size={18} />
@@ -109,40 +144,53 @@ export default function TasksPage() {
         ) : (
           <div className="bg-bg-surface border border-border-main rounded-card overflow-hidden">
             {tasks?.map((task, i) => (
-              <div key={task.id} className={`p-4 flex items-center gap-4 hover:bg-white/5 transition-colors group ${i !== 0 ? 'border-t border-border-main' : ''}`}>
-                <div className="w-5 h-5 rounded border border-border-input flex items-center justify-center cursor-pointer hover:border-brand-primary transition-colors">
-                  <div className="w-2.5 h-2.5 bg-brand-primary rounded-sm opacity-0 group-hover:opacity-20" />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-sm font-bold text-white truncate">{task.title}</h3>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 mt-1.5">
-                    {task.due_date && (
-                      <div className="flex items-center gap-1.5 text-text-tertiary">
-                        <Calendar size={12} />
-                        <span className="text-[11px]">{new Date(task.due_date).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                    {task.related_company_id && (
-                      <div className="flex items-center gap-1.5 text-brand-primary">
-                        <Clock size={12} />
-                        <span className="text-[11px] font-medium truncate max-w-[150px]">
-                          {companies?.find(c => c.id === task.related_company_id)?.name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <button className="text-text-tertiary hover:text-white transition-colors p-2">
-                  <MoreVertical size={18} />
+              <div key={task.id} className="bg-bg-surface border border-border-main rounded-card p-5 hover:border-brand-primary/40 transition-all group relative">
+              <div className="flex items-center gap-4">
+                <button className="w-6 h-6 rounded-full border-2 border-border-main hover:border-brand-primary transition-colors flex items-center justify-center group/check">
+                  <div className="w-2.5 h-2.5 rounded-full bg-brand-primary scale-0 group-hover/check:scale-100 transition-transform"></div>
                 </button>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-white group-hover:text-brand-primary transition-colors truncate">{task.title}</h3>
+                  <div className="flex items-center gap-4 mt-1">
+                    <div className="flex items-center gap-1.5 text-text-tertiary">
+                      <Calendar size={14} />
+                      <span className="text-xs">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</span>
+                    </div>
+                    {task.related_company_id && (
+                      <div className="flex items-center gap-1.5 text-text-tertiary">
+                        <Building2 size={14} />
+                        <span className="text-xs">Linked</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${
+                    task.priority === 'High' ? 'bg-danger/10 text-danger' : 
+                    task.priority === 'Medium' ? 'bg-warning/10 text-warning' : 
+                    'bg-success/10 text-success'
+                  }`}>
+                    {task.priority}
+                  </span>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => openDrawer(task)}
+                      className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
+                    >
+                      <Filter size={16} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (confirm(`Delete ${task.title}?`)) deleteMutation.mutate(task.id);
+                      }}
+                      className="p-1 hover:text-danger text-text-tertiary transition-colors"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                  </div>
+                </div>
               </div>
+            </div>
             ))}
           </div>
         )}
@@ -151,9 +199,9 @@ export default function TasksPage() {
       {/* SlideOver Form */}
       <SlideOver 
         isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)}
-        title="Add New Task"
-        description="Create a task to stay on top of your work"
+        onClose={closeDrawer}
+        title={selectedTask ? "Edit Task" : "Add New Task"}
+        description={selectedTask ? "Update task details" : "Keep track of your to-dos"}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {formError && (
@@ -229,18 +277,18 @@ export default function TasksPage() {
           <div className="pt-6 border-t border-border-main flex gap-3">
             <button 
               type="button"
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={closeDrawer}
               className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-md transition-all"
             >
               Cancel
             </button>
             <button 
               type="submit"
-              disabled={createTask.isPending}
+              disabled={taskMutation.isPending}
               className="flex-1 bg-brand-primary hover:bg-brand-accent text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {createTask.isPending && <Loader2 className="animate-spin" size={18} />}
-              {createTask.isPending ? "Creating..." : "Save Task"}
+              {taskMutation.isPending && <Loader2 className="animate-spin" size={18} />}
+              {taskMutation.isPending ? "Saving..." : (selectedTask ? "Update Task" : "Save Task")}
             </button>
           </div>
         </form>

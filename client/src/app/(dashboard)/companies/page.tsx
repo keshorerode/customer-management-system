@@ -20,6 +20,7 @@ interface Company {
 
 export default function CompaniesPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     domain: "",
@@ -41,23 +42,60 @@ export default function CompaniesPage() {
     }
   });
 
-  // 2. Create Company Mutation
-  const createCompany = useMutation({
-    mutationFn: (newCompany: any) => api.post("/companies/", newCompany),
+  // 2. Create/Update Company Mutation
+  const companyMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (selectedCompany) {
+        return api.put(`/companies/${selectedCompany.id}`, data);
+      }
+      return api.post("/companies/", data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
-      setIsDrawerOpen(false);
-      setFormData({ name: "", domain: "", industry: "Technology", company_size: "11-50", website: "", email: "" });
+      closeDrawer();
     },
     onError: (err: any) => {
-      setFormError(err.response?.data?.detail || "Failed to create company");
+      setFormError(err.response?.data?.detail || "Something went wrong");
     }
   });
+
+  // 3. Delete Company Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/companies/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+    }
+  });
+
+  const openDrawer = (company?: Company) => {
+    if (company) {
+      setSelectedCompany(company);
+      setFormData({
+        name: company.name,
+        domain: company.domain || "",
+        industry: company.industry || "Technology",
+        company_size: company.company_size || "11-50",
+        website: company.website || "",
+        email: company.email || ""
+      });
+    } else {
+      setSelectedCompany(null);
+      setFormData({ name: "", domain: "", industry: "Technology", company_size: "11-50", website: "", email: "" });
+    }
+    setIsDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedCompany(null);
+    setFormData({ name: "", domain: "", industry: "Technology", company_size: "11-50", website: "", email: "" });
+    setFormError("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-    createCompany.mutate(formData);
+    companyMutation.mutate(formData);
   };
 
   return (
@@ -69,7 +107,7 @@ export default function CompaniesPage() {
           <p className="text-text-secondary text-sm">Manage your client organizations and accounts</p>
         </div>
         <button 
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={() => openDrawer()}
           className="bg-brand-primary hover:bg-brand-accent text-white px-4 py-2 rounded-md font-bold flex items-center gap-2 transition-all shadow-lg shadow-brand-primary/20 transform active:scale-[0.98]"
         >
           <Plus size={18} />
@@ -104,7 +142,7 @@ export default function CompaniesPage() {
           <h3 className="text-white font-bold">No companies found</h3>
           <p className="text-text-secondary text-sm mt-1">Start by adding your first client organization.</p>
           <button 
-            onClick={() => setIsDrawerOpen(true)}
+            onClick={() => openDrawer()}
             className="mt-6 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-4 py-2 rounded-md font-bold transition-all"
           >
             Create Company
@@ -160,9 +198,24 @@ export default function CompaniesPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-text-tertiary hover:text-white transition-colors">
-                      <MoreVertical size={18} />
-                    </button>
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => openDrawer(company)}
+                        className="p-1.5 hover:bg-white/10 rounded-md text-text-tertiary hover:text-brand-primary transition-colors"
+                      >
+                        <Filter size={16} /> {/* Using Filter as placeholder for edit icon if Edit isn't imported */}
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this company?")) {
+                            deleteMutation.mutate(company.id);
+                          }
+                        }}
+                        className="p-1.5 hover:bg-white/10 rounded-md text-text-tertiary hover:text-danger transition-colors"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -174,9 +227,9 @@ export default function CompaniesPage() {
       {/* SlideOver Form */}
       <SlideOver 
         isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)}
-        title="Add New Company"
-        description="Add a new organization to your CRM"
+        onClose={closeDrawer}
+        title={selectedCompany ? "Edit Company" : "Add New Company"}
+        description={selectedCompany ? "Update organization details" : "Add a new organization to your CRM"}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {formError && (
@@ -256,18 +309,18 @@ export default function CompaniesPage() {
           <div className="pt-6 border-t border-border-main flex gap-3">
             <button 
               type="button"
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={closeDrawer}
               className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-md transition-all"
             >
               Cancel
             </button>
             <button 
               type="submit"
-              disabled={createCompany.isPending}
+              disabled={companyMutation.isPending}
               className="flex-1 bg-brand-primary hover:bg-brand-accent text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {createCompany.isPending && <Loader2 className="animate-spin" size={18} />}
-              {createCompany.isPending ? "Creating..." : "Save Company"}
+              {companyMutation.isPending && <Loader2 className="animate-spin" size={18} />}
+              {companyMutation.isPending ? "Saving..." : (selectedCompany ? "Update Company" : "Save Company")}
             </button>
           </div>
         </form>

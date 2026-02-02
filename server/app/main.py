@@ -11,7 +11,8 @@ from app.models.person import Person
 from app.models.product import Product
 from app.models.deal import Deal
 from app.models.task import Task
-from app.api.endpoints import auth, companies, people, products, deals, tasks
+from app.models.lead import Lead
+from app.api.endpoints import auth, companies, people, products, deals, tasks, leads
 
 load_dotenv()
 
@@ -23,6 +24,7 @@ app.include_router(people.router, prefix="/api/people", tags=["people"])
 app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(deals.router, prefix="/api/deals", tags=["deals"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
+app.include_router(leads.router, prefix="/api/leads", tags=["leads"])
 
 # CORS
 app.add_middleware(
@@ -45,6 +47,7 @@ async def startup_event():
             Product,
             Deal,
             Task,
+            Lead,
         ]
     )
 
