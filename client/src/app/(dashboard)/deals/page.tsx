@@ -192,8 +192,8 @@ export default function DealsPage() {
       ) : (
         /* Deals Grid */
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {deals?.map((deal) => (
-            <div key={deal.id} className="bg-bg-surface border border-border-main rounded-card p-6 hover:border-brand-primary/40 transition-all group relative">
+          {deals?.map((deal, index) => (
+            <div key={deal.id || deal._id || index} className="bg-bg-surface border border-border-main rounded-card p-6 hover:border-brand-primary/40 transition-all group relative">
               <div className="flex justify-between items-start mb-6">
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border ${getStageColor(deal.stage)}`}>
                   {deal.stage}
@@ -376,6 +376,17 @@ export default function DealsPage() {
                 onChange={(val) => setFormData({...formData, contact_id: val})}
                 placeholder={formData.company_id ? "Search for a contact..." : "Select a company first"}
                 disabled={!formData.company_id}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Description</label>
+              <textarea 
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Add details about this deal..."
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm resize-none"
               />
             </div>
           </div>

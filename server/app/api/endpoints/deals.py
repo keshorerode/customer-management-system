@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+
 from typing import List, Optional
 from app.models.deal import Deal
 from app.schemas.deal import DealCreate, DealUpdate, DealOut
@@ -47,9 +48,19 @@ async def get_deals(
         queries.append(Deal.contact.id == validated_contact_id)
     
     if queries:
-        return await Deal.find(*queries).sort("-created_at").to_list()
-
-    return await Deal.find_all(fetch_links=True).sort("-created_at").to_list()
+        deals = await Deal.find(*queries).sort("-created_at").to_list()
+    else:
+        deals = await Deal.find({}).sort("-created_at").to_list()
+        
+    results = []
+    for deal in deals:
+        d_dict = deal.dict()
+        d_dict["id"] = str(deal.id)
+        d_dict["company_id"] = get_link_id(deal.company)
+        d_dict["contact_id"] = get_link_id(deal.contact)
+        results.append(d_dict)
+        
+    return results
 
 
 @router.post("/", response_model=DealOut)

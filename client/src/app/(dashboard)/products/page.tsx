@@ -218,7 +218,7 @@ export default function ProductsPage() {
                   <div className="flex items-center gap-1.5 mt-2 text-text-secondary">
                     <Building2 size={12} />
                     <span className="text-xs truncate max-w-[150px]">
-                      {companies?.find(c => c.id === product.company_id)?.name || "Unknown Company"}
+                      {companies?.find(c => (c.id === product.company_id || c._id === product.company_id))?.name || "Unknown Company"}
                     </span>
                   </div>
                 )}

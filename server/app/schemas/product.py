@@ -9,6 +9,7 @@ class ProductBase(BaseModel):
     price: float = 0.0
     currency: str = "INR"
     category: Optional[str] = None
+    company_id: Optional[str] = None
     status: str = "active"
 
     @field_validator("description", "category", mode="before")
@@ -28,6 +29,7 @@ class ProductUpdate(BaseModel):
     price: Optional[float] = None
     currency: Optional[str] = None
     category: Optional[str] = None
+    company_id: Optional[str] = None
     status: Optional[str] = None
 
 class ProductOut(ProductBase):
