@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Annotated
+from pydantic import BaseModel, Field, BeforeValidator
 from datetime import datetime
 
 class ProductBase(BaseModel):
@@ -24,9 +24,10 @@ class ProductUpdate(BaseModel):
     status: Optional[str] = None
 
 class ProductOut(ProductBase):
-    id: str
+    id: Annotated[str, BeforeValidator(str)] = Field(alias="_id")
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True

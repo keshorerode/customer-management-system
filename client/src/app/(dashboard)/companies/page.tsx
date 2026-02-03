@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Plus, Filter, MoreVertical, Building2, Globe, ExternalLink, Loader2 } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
+import { getErrorMessage } from "@/lib/utils";
 import SlideOver from "@/components/SlideOver";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
@@ -55,7 +56,7 @@ export default function CompaniesPage() {
       closeDrawer();
     },
     onError: (err: any) => {
-      setFormError(err.response?.data?.detail || "Something went wrong");
+      setFormError(getErrorMessage(err));
     }
   });
 

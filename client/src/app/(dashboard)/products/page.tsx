@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Plus, Filter, MoreVertical, Archive, Loader2, Package } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
+import { getErrorMessage } from "@/lib/utils";
 import SlideOver from "@/components/SlideOver";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
@@ -56,7 +57,7 @@ export default function ProductsPage() {
       closeDrawer();
     },
     onError: (err: any) => {
-      setFormError(err.response?.data?.detail || "Something went wrong");
+      setFormError(getErrorMessage(err));
     }
   });
 

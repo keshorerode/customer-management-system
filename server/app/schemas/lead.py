@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Annotated
+from pydantic import BaseModel, EmailStr, Field, BeforeValidator
 from datetime import datetime
 
 class LeadBase(BaseModel):
@@ -26,9 +26,10 @@ class LeadUpdate(BaseModel):
     notes: Optional[str] = None
 
 class LeadOut(LeadBase):
-    id: str
+    id: Annotated[str, BeforeValidator(str)] = Field(alias="_id")
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
