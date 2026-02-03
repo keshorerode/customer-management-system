@@ -1,5 +1,5 @@
 from typing import Optional, Annotated
-from pydantic import BaseModel, EmailStr, Field, BeforeValidator
+from pydantic import BaseModel, EmailStr, Field, BeforeValidator, field_validator
 from datetime import datetime
 
 class LeadBase(BaseModel):
@@ -11,6 +11,13 @@ class LeadBase(BaseModel):
     source: Optional[str] = "Website"
     status: str = "New"
     notes: Optional[str] = None
+
+    @field_validator("email", "phone", "company", "notes", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
 class LeadCreate(LeadBase):
     pass

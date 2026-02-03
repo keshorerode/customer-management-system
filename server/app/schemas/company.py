@@ -1,5 +1,5 @@
 from typing import Optional, Annotated
-from pydantic import BaseModel, EmailStr, Field, BeforeValidator
+from pydantic import BaseModel, EmailStr, Field, BeforeValidator, field_validator
 from datetime import datetime
 
 class CompanyBase(BaseModel):
@@ -17,7 +17,13 @@ class CompanyBase(BaseModel):
     website: Optional[str] = None
     linkedin: Optional[str] = None
     description: Optional[str] = None
-    logo_url: Optional[str] = None
+
+    @field_validator("email", "website", "domain", "logo_url", "linkedin", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
 class CompanyCreate(CompanyBase):
     pass

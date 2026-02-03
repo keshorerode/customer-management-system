@@ -1,5 +1,5 @@
 from typing import Optional, Annotated
-from pydantic import BaseModel, Field, BeforeValidator
+from pydantic import BaseModel, Field, BeforeValidator, field_validator
 from datetime import datetime
 
 class ProductBase(BaseModel):
@@ -10,6 +10,13 @@ class ProductBase(BaseModel):
     currency: str = "INR"
     category: Optional[str] = None
     status: str = "active"
+
+    @field_validator("description", "category", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
 class ProductCreate(ProductBase):
     pass

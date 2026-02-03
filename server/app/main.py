@@ -29,7 +29,7 @@ app.include_router(leads.router, prefix="/api/leads", tags=["leads"])
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, specify the actual origin
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
