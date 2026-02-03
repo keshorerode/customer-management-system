@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Filter, MoreVertical, Mail, Phone, Building2, UserCircle, Loader2, FileText } from "lucide-react";
+import { Search, Plus, Filter, Loader2, FileText, Mail, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
@@ -9,7 +9,8 @@ import SlideOver from "@/components/SlideOver";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface Lead {
-  id: string;
+  id?: string;
+  _id?: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -38,7 +39,7 @@ export default function LeadsPage() {
   const queryClient = useQueryClient();
 
   // 1. Fetch Leads
-  const { data: leads, isLoading } = useQuery<Lead[]>({
+  const { data: leads, isLoading, isError, error } = useQuery<Lead[]>({
     queryKey: ["leads"],
     queryFn: async () => {
       const response = await api.get("/leads/");
@@ -48,9 +49,10 @@ export default function LeadsPage() {
 
   // 2. Create/Update Mutation
   const leadMutation = useMutation({
-    mutationFn: (data: any) => {
+    mutationFn: (data: Partial<Lead>) => {
       if (selectedLead) {
-        return api.put(`/leads/${selectedLead.id}`, data);
+        const leadId = selectedLead.id || selectedLead._id;
+        return api.put(`/leads/${leadId}`, data);
       }
       return api.post("/leads/", data);
     },
@@ -58,7 +60,7 @@ export default function LeadsPage() {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       closeDrawer();
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       setFormError(getErrorMessage(err));
     }
   });
@@ -68,6 +70,18 @@ export default function LeadsPage() {
     mutationFn: (id: string) => api.delete(`/leads/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+    }
+  });
+
+  // 4. Sync Mail Mutation
+  const syncMailMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/leads/${id}/sync-mail`),
+    onSuccess: (response: { data: { message: string } }) => {
+      alert(response.data.message);
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (err: unknown) => {
+      alert(getErrorMessage(err));
     }
   });
 
@@ -123,8 +137,8 @@ export default function LeadsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-bg-surface border border-border-main p-4 rounded-card flex gap-4 items-center">
-        <div className="relative flex-1">
+      <div className="bg-bg-surface border border-border-main p-4 rounded-card flex flex-col sm:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
           <input 
             type="text" 
@@ -132,7 +146,7 @@ export default function LeadsPage() {
             className="w-full bg-bg-page border border-border-input text-white pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
           />
         </div>
-        <button className="px-4 py-2 bg-white/5 border border-border-main text-text-secondary hover:text-white rounded-md flex items-center gap-2 transition-colors text-sm">
+        <button className="w-full sm:w-auto px-4 py-2 bg-white/5 border border-border-main text-text-secondary hover:text-white rounded-md flex items-center justify-center gap-2 transition-colors text-sm">
           <Filter size={16} />
           Filters
         </button>
@@ -140,6 +154,17 @@ export default function LeadsPage() {
 
       {isLoading ? (
         <LoadingSpinner message="Loading leads..." />
+      ) : isError ? (
+        <div className="p-8 bg-danger/10 border border-danger/20 rounded-card text-center">
+          <p className="text-danger font-bold">Failed to load leads</p>
+          <p className="text-text-secondary text-sm mt-1">{getErrorMessage(error)}</p>
+          <button 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["leads"] })}
+            className="mt-4 text-brand-primary hover:underline text-sm font-bold"
+          >
+            Try again
+          </button>
+        </div>
       ) : (!leads || leads.length === 0) ? (
         <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-border-main rounded-card">
           <div className="p-4 bg-white/5 rounded-full text-text-tertiary mb-4">
@@ -164,12 +189,12 @@ export default function LeadsPage() {
                 <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider">Company</th>
                 <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider">Source</th>
                 <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider">Email</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider"></th>
+                <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-main">
-              {leads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-white/5 transition-colors group">
+              {leads?.filter(l => l && (l.id || l._id)).map((lead) => (
+                <tr key={lead.id || lead._id} className="hover:bg-white/5 transition-colors group">
                   <td className="px-6 py-4 text-sm font-bold text-white">
                     {lead.first_name} {lead.last_name}
                   </td>
@@ -188,16 +213,31 @@ export default function LeadsPage() {
                   <td className="px-6 py-4 text-sm text-text-secondary">{lead.email}</td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openDrawer(lead)} className="p-1.5 hover:bg-white/10 rounded-md text-text-tertiary hover:text-brand-primary transition-colors">
-                        <Filter size={16} />
+                      <button 
+                        onClick={() => syncMailMutation.mutate(lead.id || lead._id || "")}
+                        disabled={syncMailMutation.isPending}
+                        title="Sync Mail"
+                        className="p-1.5 hover:bg-white/10 rounded-md text-text-tertiary hover:text-brand-primary transition-colors flex items-center gap-1 text-[10px] font-bold uppercase"
+                      >
+                        <Mail size={14} />
+                        Sync Mail
+                      </button>
+                      <button 
+                        onClick={() => openDrawer(lead)} 
+                        title="Edit lead"
+                        className="p-1.5 hover:bg-white/10 rounded-md text-text-tertiary hover:text-brand-primary transition-colors"
+                      >
+                        <Pencil size={16} />
                       </button>
                       <button 
                         onClick={() => {
-                          if (confirm("Delete this lead?")) deleteMutation.mutate(lead.id);
+                          const leadId = lead.id || lead._id;
+                          if (leadId && confirm("Delete this lead?")) deleteMutation.mutate(leadId);
                         }}
+                        title="Delete lead"
                         className="p-1.5 hover:bg-white/10 rounded-md text-text-tertiary hover:text-danger transition-colors"
                       >
-                        <MoreVertical size={16} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>

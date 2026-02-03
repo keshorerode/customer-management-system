@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Annotated
+from pydantic import BaseModel, Field, BeforeValidator, field_validator, ConfigDict
 from datetime import datetime
 
 class TaskBase(BaseModel):
@@ -10,6 +10,13 @@ class TaskBase(BaseModel):
     status: str = "Todo"
     related_company_id: Optional[str] = None
     related_person_id: Optional[str] = None
+
+    @field_validator("description", "due_date", "related_company_id", "related_person_id", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
 class TaskCreate(TaskBase):
     pass
@@ -22,9 +29,11 @@ class TaskUpdate(BaseModel):
     status: Optional[str] = None
 
 class TaskOut(TaskBase):
-    id: str
+    id: Annotated[str, BeforeValidator(str)] = Field(alias="_id")
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+    )

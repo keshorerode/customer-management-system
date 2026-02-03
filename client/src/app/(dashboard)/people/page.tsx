@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Filter, MoreVertical, Mail, Phone, Building2, UserCircle, Loader2 } from "lucide-react";
+import { Search, Plus, Filter, Mail, Phone, Building2, UserCircle, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
@@ -9,14 +9,14 @@ import SlideOver from "@/components/SlideOver";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface Person {
-  id: string;
+  id?: string;
+  _id?: string;
   first_name: string;
   last_name: string;
   email: string;
   phone?: string;
   job_title?: string;
   company_id?: string;
-  company_name?: string; // We'll handle this in the UI or fetch linked data
 }
 
 export default function PeoplePage() {
@@ -35,7 +35,7 @@ export default function PeoplePage() {
   const queryClient = useQueryClient();
 
   // 1. Fetch People
-  const { data: people, isLoading } = useQuery<Person[]>({
+  const { data: people, isLoading, isError, error } = useQuery<Person[]>({
     queryKey: ["people"],
     queryFn: async () => {
       const response = await api.get("/people/");
@@ -44,7 +44,7 @@ export default function PeoplePage() {
   });
 
   // 2. Fetch Companies for the dropdown
-  const { data: companies } = useQuery<any[]>({
+  const { data: companies } = useQuery<Array<{id: string, _id?: string, name: string}>>({
     queryKey: ["companies-list"],
     queryFn: async () => {
       const response = await api.get("/companies/");
@@ -54,9 +54,10 @@ export default function PeoplePage() {
 
   // 3. Create/Update Person Mutation
   const personMutation = useMutation({
-    mutationFn: (data: any) => {
+    mutationFn: (data: Partial<Person>) => {
       if (selectedPerson) {
-        return api.put(`/people/${selectedPerson.id}`, data);
+        const personId = selectedPerson.id || selectedPerson._id;
+        return api.put(`/people/${personId}`, data);
       }
       return api.post("/people/", data);
     },
@@ -64,7 +65,7 @@ export default function PeoplePage() {
       queryClient.invalidateQueries({ queryKey: ["people"] });
       closeDrawer();
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       setFormError(getErrorMessage(err));
     }
   });
@@ -107,6 +108,101 @@ export default function PeoplePage() {
     personMutation.mutate(formData);
   };
 
+  const renderContent = () => {
+    if (isLoading) return <LoadingSpinner message="Loading contacts..." />;
+
+    if (isError) return (
+      <div className="p-8 bg-danger/10 border border-danger/20 rounded-card text-center">
+        <p className="text-danger font-bold">Failed to load contacts</p>
+        <p className="text-text-secondary text-sm mt-1">{getErrorMessage(error)}</p>
+        <button 
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["people"] })}
+          className="mt-4 text-brand-primary hover:underline text-sm font-bold"
+        >
+          Try again
+        </button>
+      </div>
+    );
+
+    if (!people || people.length === 0) return (
+      <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-border-main rounded-card">
+        <div className="p-4 bg-white/5 rounded-full text-text-tertiary mb-4">
+          <UserCircle size={32} />
+        </div>
+        <h3 className="text-white font-bold">No contacts found</h3>
+        <p className="text-text-secondary text-sm mt-1">Add your first contact to start building relationships.</p>
+        <button 
+          onClick={() => openDrawer()}
+          className="mt-6 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-4 py-2 rounded-md font-bold transition-all"
+        >
+          Create Contact
+        </button>
+      </div>
+    );
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        {people?.filter(p => p && (p.id || p._id)).map((person) => {
+          const personId = person.id || person._id;
+          if (!personId) return null;
+          return (
+            <div key={personId} className="bg-bg-surface border border-border-main rounded-card p-6 hover:border-brand-primary/40 transition-all group relative">
+              <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => openDrawer(person)}
+                  title="Edit contact"
+                  className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button 
+                  onClick={() => {
+                    const personId = person.id || person._id;
+                    if (personId && confirm(`Delete ${person.first_name}?`)) deleteMutation.mutate(personId);
+                  }}
+                  title="Delete contact"
+                  className="p-1 hover:text-danger text-text-tertiary transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+              
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary mb-4 border border-brand-primary/20 text-xl font-bold">
+                  {person.first_name[0]}{person.last_name[0]}
+                </div>
+                <h3 className="text-lg font-bold text-white group-hover:text-brand-primary transition-colors truncate w-full">
+                  {person.first_name} {person.last_name}
+                </h3>
+                <p className="text-xs text-brand-primary font-medium mt-1 truncate w-full">{person.job_title || "Contact"}</p>
+                
+                <div className="mt-4 flex items-center gap-1.5 text-text-secondary">
+                  <Building2 size={14} />
+                  <span className="text-xs truncate max-w-[120px]">
+                    {companies?.find(c => (c.id || c._id) === person.company_id)?.name || "Individual"}
+                  </span>
+                </div>
+
+                <div className="mt-6 w-full space-y-3 pt-6 border-t border-border-main text-left">
+                  <div className="flex items-center gap-3 text-text-tertiary hover:text-white transition-colors cursor-pointer group/item overflow-hidden">
+                    <Mail size={14} className="flex-shrink-0" />
+                    <span className="text-xs truncate">{person.email}</span>
+                  </div>
+                  {person.phone && (
+                    <div className="flex items-center gap-3 text-text-tertiary hover:text-white transition-colors cursor-pointer overflow-hidden">
+                      <Phone size={14} className="flex-shrink-0" />
+                      <span className="text-xs truncate">{person.phone}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header Section */}
@@ -140,78 +236,8 @@ export default function PeoplePage() {
         </button>
       </div>
 
-      {/* Loading & Empty States */}
-      {isLoading ? (
-        <LoadingSpinner message="Loading contacts..." />
-      ) : (!people || people.length === 0) ? (
-        <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-border-main rounded-card">
-          <div className="p-4 bg-white/5 rounded-full text-text-tertiary mb-4">
-            <UserCircle size={32} />
-          </div>
-          <h3 className="text-white font-bold">No contacts found</h3>
-          <p className="text-text-secondary text-sm mt-1">Add your first contact to start building relationships.</p>
-          <button 
-            onClick={() => openDrawer()}
-            className="mt-6 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-4 py-2 rounded-md font-bold transition-all"
-          >
-            Create Contact
-          </button>
-        </div>
-      ) : (
-        /* People Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {people?.filter(p => p && p.id).map((person) => (
-            <div key={person.id} className="bg-bg-surface border border-border-main rounded-card p-6 hover:border-brand-primary/40 transition-all group relative">
-              <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button 
-                  onClick={() => openDrawer(person)}
-                  className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
-                >
-                  <Filter size={16} /> {/* Edit icon placeholder */}
-                </button>
-                <button 
-                  onClick={() => {
-                    if (confirm(`Delete ${person.first_name}?`)) deleteMutation.mutate(person.id);
-                  }}
-                  className="p-1 hover:text-danger text-text-tertiary transition-colors"
-                >
-                  <MoreVertical size={16} />
-                </button>
-              </div>
-              
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary mb-4 border border-brand-primary/20 text-xl font-bold">
-                  {person.first_name[0]}{person.last_name[0]}
-                </div>
-                <h3 className="text-lg font-bold text-white group-hover:text-brand-primary transition-colors truncate w-full">
-                  {person.first_name} {person.last_name}
-                </h3>
-                <p className="text-xs text-brand-primary font-medium mt-1 truncate w-full">{person.job_title || "Contact"}</p>
-                
-                <div className="mt-4 flex items-center gap-1.5 text-text-secondary">
-                  <Building2 size={14} />
-                  <span className="text-xs truncate max-w-[120px]">
-                    {companies?.find(c => c.id === person.company_id)?.name || "Individual"}
-                  </span>
-                </div>
-
-                <div className="mt-6 w-full space-y-3 pt-6 border-t border-border-main text-left">
-                  <div className="flex items-center gap-3 text-text-tertiary hover:text-white transition-colors cursor-pointer group/item overflow-hidden">
-                    <Mail size={14} className="flex-shrink-0" />
-                    <span className="text-xs truncate">{person.email}</span>
-                  </div>
-                  {person.phone && (
-                    <div className="flex items-center gap-3 text-text-tertiary hover:text-white transition-colors cursor-pointer overflow-hidden">
-                      <Phone size={14} className="flex-shrink-0" />
-                      <span className="text-xs truncate">{person.phone}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Main Content */}
+      {renderContent()}
 
       {/* SlideOver Form */}
       <SlideOver 
@@ -284,8 +310,8 @@ export default function PeoplePage() {
                 className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
               >
                 <option value="">None / Individual</option>
-                {companies?.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                {companies?.filter(c => c && (c.id || c._id)).map(c => (
+                  <option key={c.id || c._id} value={c.id || c._id}>{c.name}</option>
                 ))}
               </select>
             </div>

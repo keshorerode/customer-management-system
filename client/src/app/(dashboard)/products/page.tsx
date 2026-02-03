@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Filter, MoreVertical, Archive, Loader2, Package } from "lucide-react";
+import { Search, Plus, Filter, Loader2, Package, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
@@ -9,7 +9,8 @@ import SlideOver from "@/components/SlideOver";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface Product {
-  id: string;
+  id?: string;
+  _id?: string;
   name: string;
   code: string;
   description?: string;
@@ -36,7 +37,7 @@ export default function ProductsPage() {
   const queryClient = useQueryClient();
 
   // 1. Fetch Products
-  const { data: products, isLoading } = useQuery<Product[]>({
+  const { data: products, isLoading, isError, error } = useQuery<Product[]>({
     queryKey: ["products"],
     queryFn: async () => {
       const response = await api.get("/products/");
@@ -46,9 +47,10 @@ export default function ProductsPage() {
 
   // 2. Create/Update Product Mutation
   const productMutation = useMutation({
-    mutationFn: (data: any) => {
+    mutationFn: (data: Partial<Product>) => {
       if (selectedProduct) {
-        return api.put(`/products/${selectedProduct.id}`, data);
+        const productId = selectedProduct.id || selectedProduct._id;
+        return api.put(`/products/${productId}`, data);
       }
       return api.post("/products/", data);
     },
@@ -56,7 +58,7 @@ export default function ProductsPage() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       closeDrawer();
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       setFormError(getErrorMessage(err));
     }
   });
@@ -133,9 +135,20 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      {/* Loading State */}
+      {/* Main Content */}
       {isLoading ? (
         <LoadingSpinner message="Loading your catalog..." />
+      ) : isError ? (
+        <div className="p-8 bg-danger/10 border border-danger/20 rounded-card text-center">
+          <p className="text-danger font-bold">Failed to load catalog</p>
+          <p className="text-text-secondary text-sm mt-1">{getErrorMessage(error)}</p>
+          <button 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["products"] })}
+            className="mt-4 text-brand-primary hover:underline text-sm font-bold"
+          >
+            Try again
+          </button>
+        </div>
       ) : (!products || products.length === 0) ? (
         <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-border-main rounded-card">
           <div className="p-4 bg-white/5 rounded-full text-text-tertiary mb-4">
@@ -153,22 +166,25 @@ export default function ProductsPage() {
       ) : (
         /* Product Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {products?.map((product) => (
-            <div key={product.id} className="bg-bg-surface border border-border-main rounded-card p-6 hover:border-brand-primary/40 transition-all group relative">
+          {products?.filter(p => p && (p.id || p._id)).map((product) => (
+            <div key={product.id || product._id} className="bg-bg-surface border border-border-main rounded-card p-6 hover:border-brand-primary/40 transition-all group relative">
               <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button 
                   onClick={() => openDrawer(product)}
+                  title="Edit product"
                   className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
                 >
-                  <Filter size={16} />
+                  <Pencil size={16} />
                 </button>
                 <button 
                   onClick={() => {
-                    if (confirm(`Delete ${product.name}?`)) deleteMutation.mutate(product.id);
+                    const productId = product.id || product._id;
+                    if (productId && confirm(`Delete ${product.name}?`)) deleteMutation.mutate(productId);
                   }}
+                  title="Delete product"
                   className="p-1 hover:text-danger text-text-tertiary transition-colors"
                 >
-                  <MoreVertical size={16} />
+                  <Trash2 size={16} />
                 </button>
               </div>
               <div className="flex justify-between items-start mb-4">

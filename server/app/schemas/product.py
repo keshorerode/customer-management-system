@@ -1,5 +1,5 @@
 from typing import Optional, Annotated
-from pydantic import BaseModel, Field, BeforeValidator, field_validator
+from pydantic import BaseModel, Field, BeforeValidator, field_validator, ConfigDict
 from datetime import datetime
 
 class ProductBase(BaseModel):
@@ -35,6 +35,7 @@ class ProductOut(ProductBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+    )

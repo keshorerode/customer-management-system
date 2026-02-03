@@ -11,7 +11,8 @@ import {
   FileText, 
   Settings, 
   UserCircle,
-  Package
+  Package,
+  X
 } from "lucide-react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
@@ -34,7 +35,12 @@ const supportItems = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
@@ -68,52 +74,72 @@ export default function Sidebar() {
     : "RP";
 
   return (
-    <aside className="w-[260px] bg-bg-sidebar border-r border-border-main flex flex-col h-screen sticky top-0">
-      <div className="p-6">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-primary rounded-md flex items-center justify-center font-bold text-white">
-            RP
-          </div>
-          <div>
-            <div className="font-bold text-white text-sm">Relationship Pro</div>
-            <div className="text-[10px] text-text-tertiary font-bold tracking-widest uppercase">Workspace</div>
-          </div>
-        </div>
-      </div>
-
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(renderNavItem)}
-        
-        <div className="pt-8 pb-2 px-4">
-          <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Support</span>
-        </div>
-        {supportItems.map(renderNavItem)}
-      </nav>
-
-      <div className="p-4 border-t border-border-main">
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
         <div 
-          onClick={handleLogout}
-          className="flex items-center gap-3 p-2 rounded-md hover:bg-danger/10 group cursor-pointer transition-colors"
-        >
-          {user?.avatar ? (
-            <img 
-              src={user.avatar} 
-              alt="Profile" 
-              className="w-8 h-8 rounded-full object-cover border border-white/10"
-            />
-          ) : (
-            <div className="w-8 h-8 bg-brand-accent group-hover:bg-danger rounded-full flex items-center justify-center text-xs font-bold text-white transition-colors">
-              {initials}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside className={`fixed lg:sticky top-0 left-0 z-50 w-[260px] bg-bg-sidebar border-r border-border-main flex flex-col h-screen transition-transform duration-300 ease-in-out ${
+        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      }`}>
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-brand-primary rounded-md flex items-center justify-center font-bold text-white">
+              RP
             </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-white truncate group-hover:text-danger">
-              {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
+            <div>
+              <div className="font-bold text-white text-sm">Relationship Pro</div>
+              <div className="text-[10px] text-text-tertiary font-bold tracking-widest uppercase">Workspace</div>
             </div>
-            <div className="text-xs text-text-tertiary truncate">Logout</div>
+          </div>
+          
+          {/* Mobile Close Button */}
+          <button 
+            onClick={onClose}
+            className="lg:hidden text-text-tertiary hover:text-white p-1"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {navItems.map(renderNavItem)}
+          
+          <div className="pt-8 pb-2 px-4">
+            <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Support</span>
+          </div>
+          {supportItems.map(renderNavItem)}
+        </nav>
+
+        <div className="p-4 border-t border-border-main">
+          <div 
+            onClick={handleLogout}
+            className="flex items-center gap-3 p-2 rounded-md hover:bg-danger/10 group cursor-pointer transition-colors"
+          >
+            {user?.avatar ? (
+              <img 
+                src={user.avatar} 
+                alt="Profile" 
+                className="w-8 h-8 rounded-full object-cover border border-white/10"
+              />
+            ) : (
+              <div className="w-8 h-8 bg-brand-accent group-hover:bg-danger rounded-full flex items-center justify-center text-xs font-bold text-white transition-colors">
+                {initials}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-white truncate group-hover:text-danger">
+                {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
+              </div>
+              <div className="text-xs text-text-tertiary truncate">Logout</div>
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

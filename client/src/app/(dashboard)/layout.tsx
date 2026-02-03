@@ -14,6 +14,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -31,10 +32,13 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-bg-page">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 flex flex-col min-w-0">
-        <Header title="Workspaces / Dashboard" />
-        <div className="flex-1 p-8 overflow-y-auto">
+        <Header 
+          title="Workspaces / Dashboard" 
+          onMenuClick={() => setIsSidebarOpen(true)}
+        />
+        <div className="flex-1 p-4 md:p-8 overflow-y-auto">
           {children}
         </div>
       </main>

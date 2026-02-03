@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Filter, MoreVertical, Calendar, CheckSquare, Loader2, Building2 } from "lucide-react";
+import { Plus, Calendar, CheckSquare, Loader2, Building2, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
@@ -9,7 +9,8 @@ import SlideOver from "@/components/SlideOver";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface Task {
-  id: string;
+  id?: string;
+  _id?: string;
   title: string;
   description?: string;
   due_date?: string;
@@ -33,7 +34,7 @@ export default function TasksPage() {
   const queryClient = useQueryClient();
 
   // 1. Fetch Tasks
-  const { data: tasks, isLoading } = useQuery<Task[]>({
+  const { data: tasks, isLoading, isError, error } = useQuery<Task[]>({
     queryKey: ["tasks"],
     queryFn: async () => {
       const response = await api.get("/tasks/");
@@ -42,7 +43,7 @@ export default function TasksPage() {
   });
 
   // 2. Fetch Companies
-  const { data: companies } = useQuery<any[]>({
+  const { data: companies } = useQuery<Array<{id: string, _id?: string, name: string}>>({
     queryKey: ["companies-list"],
     queryFn: async () => {
       const response = await api.get("/companies/");
@@ -52,9 +53,10 @@ export default function TasksPage() {
 
   // 2. Create/Update Task Mutation
   const taskMutation = useMutation({
-    mutationFn: (data: any) => {
+    mutationFn: (data: Partial<Task>) => {
       if (selectedTask) {
-        return api.put(`/tasks/${selectedTask.id}`, data);
+        const taskId = selectedTask.id || selectedTask._id;
+        return api.put(`/tasks/${taskId}`, data);
       }
       return api.post("/tasks/", data);
     },
@@ -62,7 +64,7 @@ export default function TasksPage() {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       closeDrawer();
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       setFormError(getErrorMessage(err));
     }
   });
@@ -104,14 +106,6 @@ export default function TasksPage() {
     taskMutation.mutate(formData);
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch(priority) {
-      case 'Urgent': return 'text-danger bg-danger/10 border-danger/20';
-      case 'High': return 'text-warning bg-warning/10 border-warning/20';
-      case 'Medium': return 'text-brand-primary bg-brand-primary/10 border-brand-primary/20';
-      default: return 'text-text-tertiary bg-white/5 border-white/10';
-    }
-  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -134,6 +128,17 @@ export default function TasksPage() {
       <div className="space-y-6">
         {isLoading ? (
           <LoadingSpinner message="Loading tasks..." />
+        ) : isError ? (
+          <div className="p-8 bg-danger/10 border border-danger/20 rounded-card text-center">
+            <p className="text-danger font-bold">Failed to load tasks</p>
+            <p className="text-text-secondary text-sm mt-1">{getErrorMessage(error)}</p>
+            <button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
+              className="mt-4 text-brand-primary hover:underline text-sm font-bold"
+            >
+              Try again
+            </button>
+          </div>
         ) : (!tasks || tasks.length === 0) ? (
           <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-border-main rounded-card">
             <div className="p-4 bg-white/5 rounded-full text-text-tertiary mb-4">
@@ -144,8 +149,8 @@ export default function TasksPage() {
           </div>
         ) : (
           <div className="bg-bg-surface border border-border-main rounded-card overflow-hidden">
-            {tasks?.map((task, i) => (
-              <div key={task.id} className="bg-bg-surface border border-border-main rounded-card p-5 hover:border-brand-primary/40 transition-all group relative">
+            {tasks?.filter(t => t && (t.id || t._id)).map((task) => (
+              <div key={task.id || task._id} className="bg-bg-surface border border-border-main rounded-card p-5 hover:border-brand-primary/40 transition-all group relative">
               <div className="flex items-center gap-4">
                 <button className="w-6 h-6 rounded-full border-2 border-border-main hover:border-brand-primary transition-colors flex items-center justify-center group/check">
                   <div className="w-2.5 h-2.5 rounded-full bg-brand-primary scale-0 group-hover/check:scale-100 transition-transform"></div>
@@ -176,17 +181,20 @@ export default function TasksPage() {
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                       onClick={() => openDrawer(task)}
+                      title="Edit task"
                       className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
                     >
-                      <Filter size={16} />
+                      <Pencil size={16} />
                     </button>
                     <button 
                       onClick={() => {
-                        if (confirm(`Delete ${task.title}?`)) deleteMutation.mutate(task.id);
+                        const taskId = task.id || task._id;
+                        if (taskId && confirm(`Delete ${task.title}?`)) deleteMutation.mutate(taskId);
                       }}
+                      title="Delete task"
                       className="p-1 hover:text-danger text-text-tertiary transition-colors"
                     >
-                      <MoreVertical size={16} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -257,8 +265,8 @@ export default function TasksPage() {
                 className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
               >
                 <option value="">None</option>
-                {companies?.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                {companies?.filter(c => c && (c.id || c._id)).map(c => (
+                  <option key={c.id || c._id} value={c.id || c._id}>{c.name}</option>
                 ))}
               </select>
             </div>

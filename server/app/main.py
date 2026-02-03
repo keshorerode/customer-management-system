@@ -12,6 +12,7 @@ from app.models.product import Product
 from app.models.deal import Deal
 from app.models.task import Task
 from app.models.lead import Lead
+from app.models.lead_thread import LeadThread
 from app.api.endpoints import auth, companies, people, products, deals, tasks, leads
 
 load_dotenv()
@@ -48,6 +49,7 @@ async def startup_event():
             Deal,
             Task,
             Lead,
+            LeadThread,
         ]
     )
 
