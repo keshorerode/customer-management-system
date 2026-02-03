@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Filter, Loader2, FileText, Mail, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Filter, Loader2, FileText } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
@@ -124,12 +124,12 @@ export default function LeadsPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Leads</h1>
+          <h1 className="text-2xl font-bold text-text-primary mb-1">Leads</h1>
           <p className="text-text-secondary text-sm">Track and manage potential customers</p>
         </div>
         <button 
           onClick={() => openDrawer()}
-          className="bg-brand-primary hover:bg-brand-accent text-white px-4 py-2 rounded-md font-bold flex items-center gap-2 transition-all shadow-lg shadow-brand-primary/20 transform active:scale-[0.98]"
+          className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
           Add Lead
@@ -143,10 +143,10 @@ export default function LeadsPage() {
           <input 
             type="text" 
             placeholder="Search leads..." 
-            className="w-full bg-bg-page border border-border-input text-white pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+            className="w-full bg-bg-page border border-border-input text-text-primary pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm shadow-sm"
           />
         </div>
-        <button className="w-full sm:w-auto px-4 py-2 bg-white/5 border border-border-main text-text-secondary hover:text-white rounded-md flex items-center justify-center gap-2 transition-colors text-sm">
+        <button className="w-full sm:w-auto btn-ghost border border-border-main flex items-center justify-center gap-2 shadow-sm">
           <Filter size={16} />
           Filters
         </button>
@@ -167,35 +167,36 @@ export default function LeadsPage() {
         </div>
       ) : (!leads || leads.length === 0) ? (
         <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-border-main rounded-card">
-          <div className="p-4 bg-white/5 rounded-full text-text-tertiary mb-4">
+          <div className="p-4 bg-brand-primary/10 rounded-full text-brand-primary mb-4">
             <FileText size={32} />
           </div>
-          <h3 className="text-white font-bold">No leads found</h3>
+          <h3 className="text-text-primary font-bold">No leads found</h3>
           <p className="text-text-secondary text-sm mt-1">Capture your first lead to start your sales process.</p>
           <button 
             onClick={() => openDrawer()}
-            className="mt-6 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-4 py-2 rounded-md font-bold transition-all"
+            className="mt-6 btn-primary"
           >
             Create Lead
           </button>
         </div>
       ) : (
-        <div className="bg-bg-surface border border-border-main rounded-card overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border-main bg-white/5">
-                <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider">Lead Name</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider">Company</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider">Source</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider">Email</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-tertiary uppercase tracking-wider text-right">Actions</th>
+        <div className="bg-bg-surface border border-border-main rounded-card overflow-hidden flex flex-col">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)]">
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 z-20 shadow-sm">
+                <tr className="border-b border-border-main bg-bg-muted">
+                <th className="px-6 py-3 font-medium text-text-primary text-sm">Lead Name</th>
+                <th className="px-6 py-3 font-medium text-text-primary text-sm">Status</th>
+                <th className="px-6 py-3 font-medium text-text-primary text-sm">Company</th>
+                <th className="px-6 py-3 font-medium text-text-primary text-sm">Source</th>
+                <th className="px-6 py-3 font-medium text-text-primary text-sm">Email</th>
+                <th className="px-6 py-3 font-medium text-text-primary text-sm text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-main">
               {leads?.filter(l => l && (l.id || l._id)).map((lead) => (
-                <tr key={lead.id || lead._id} className="hover:bg-white/5 transition-colors group">
-                  <td className="px-6 py-4 text-sm font-bold text-white">
+                <tr key={lead.id || lead._id} className="bg-bg-surface hover:bg-bg-muted border-b border-border-main transition-colors group">
+                  <td className="px-6 py-4 text-sm font-bold text-text-primary">
                     {lead.first_name} {lead.last_name}
                   </td>
                   <td className="px-6 py-4">
@@ -211,40 +212,37 @@ export default function LeadsPage() {
                   <td className="px-6 py-4 text-sm text-text-secondary">{lead.company || "N/A"}</td>
                   <td className="px-6 py-4 text-sm text-text-secondary">{lead.source}</td>
                   <td className="px-6 py-4 text-sm text-text-secondary">{lead.email}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-3 transition-opacity">
                       <button 
                         onClick={() => syncMailMutation.mutate(lead.id || lead._id || "")}
                         disabled={syncMailMutation.isPending}
-                        title="Sync Mail"
-                        className="p-1.5 hover:bg-white/10 rounded-md text-text-tertiary hover:text-brand-primary transition-colors flex items-center gap-1 text-[10px] font-bold uppercase"
+                        className="font-medium text-brand-primary hover:underline text-sm"
                       >
-                        <Mail size={14} />
-                        Sync Mail
+                        Sync
                       </button>
                       <button 
                         onClick={() => openDrawer(lead)} 
-                        title="Edit lead"
-                        className="p-1.5 hover:bg-white/10 rounded-md text-text-tertiary hover:text-brand-primary transition-colors"
+                        className="font-medium text-brand-primary hover:underline text-sm"
                       >
-                        <Pencil size={16} />
+                        Edit
                       </button>
                       <button 
                         onClick={() => {
                           const leadId = lead.id || lead._id;
                           if (leadId && confirm("Delete this lead?")) deleteMutation.mutate(leadId);
                         }}
-                        title="Delete lead"
-                        className="p-1.5 hover:bg-white/10 rounded-md text-text-tertiary hover:text-danger transition-colors"
+                        className="font-medium text-danger hover:underline text-sm"
                       >
-                        <Trash2 size={16} />
+                        Remove
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
 
@@ -260,25 +258,25 @@ export default function LeadsPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <input 
-                required placeholder="First Name" className="input-field"
+                required placeholder="First Name" className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
                 value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})}
               />
               <input 
-                required placeholder="Last Name" className="input-field"
+                required placeholder="Last Name" className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
                 value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})}
               />
             </div>
             <input 
-              required type="email" placeholder="Email Address" className="input-field w-full"
+              required type="email" placeholder="Email Address" className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
               value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
             />
             <input 
-              placeholder="Company" className="input-field w-full"
+              placeholder="Company" className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
               value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})}
             />
             <div className="grid grid-cols-2 gap-4">
               <select 
-                className="input-field" value={formData.status} 
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm" value={formData.status} 
                 onChange={e => setFormData({...formData, status: e.target.value})}
               >
                 <option value="New">New</option>
@@ -287,7 +285,7 @@ export default function LeadsPage() {
                 <option value="Lost">Lost</option>
               </select>
               <select 
-                className="input-field" value={formData.source} 
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm" value={formData.source} 
                 onChange={e => setFormData({...formData, source: e.target.value})}
               >
                 <option value="Website">Website</option>
@@ -297,16 +295,16 @@ export default function LeadsPage() {
               </select>
             </div>
             <textarea 
-              placeholder="Notes" className="input-field w-full h-32 resize-none"
+              placeholder="Notes" className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm h-32 resize-none"
               value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}
             />
           </div>
 
           <div className="pt-6 border-t border-border-main flex gap-3">
-            <button type="button" onClick={closeDrawer} className="flex-1 bg-white/5 text-white font-bold py-3 rounded-md">Cancel</button>
+            <button type="button" onClick={closeDrawer} className="flex-1 btn-ghost border border-border-main font-bold">Cancel</button>
             <button 
               type="submit" disabled={leadMutation.isPending}
-              className="flex-1 bg-brand-primary text-white font-bold py-3 rounded-md flex items-center justify-center gap-2"
+              className="flex-1 btn-primary font-bold flex items-center justify-center gap-2"
             >
               {leadMutation.isPending && <Loader2 className="animate-spin" size={18} />}
               {leadMutation.isPending ? "Saving..." : "Save Lead"}

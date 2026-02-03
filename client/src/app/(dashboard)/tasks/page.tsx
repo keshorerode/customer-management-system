@@ -1,12 +1,13 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Calendar, CheckSquare, Loader2, Building2, Pencil, Trash2 } from "lucide-react";
+import { Plus, Calendar, CheckSquare, Loader2, Building2, Search, Filter, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import SlideOver from "@/components/SlideOver";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import Combobox from "@/components/Combobox";
 
 interface Task {
   id?: string;
@@ -16,7 +17,8 @@ interface Task {
   due_date?: string;
   priority: string;
   status: string;
-  related_company_id?: string;
+  related_to_type?: string;
+  related_to_id?: string;
 }
 
 export default function TasksPage() {
@@ -26,7 +28,8 @@ export default function TasksPage() {
     title: "",
     priority: "Medium",
     due_date: "",
-    related_company_id: "",
+    related_to_type: "",
+    related_to_id: "",
     description: ""
   });
   const [formError, setFormError] = useState("");
@@ -44,7 +47,7 @@ export default function TasksPage() {
 
   // 2. Fetch Companies
   const { data: companies } = useQuery<Array<{id: string, _id?: string, name: string}>>({
-    queryKey: ["companies-list"],
+    queryKey: ["companies"],
     queryFn: async () => {
       const response = await api.get("/companies/");
       return response.data;
@@ -84,12 +87,13 @@ export default function TasksPage() {
         title: task.title,
         priority: task.priority || "Medium",
         due_date: task.due_date ? task.due_date.split('T')[0] : "",
-        related_company_id: task.related_company_id || "",
+        related_to_type: task.related_to_type || "",
+        related_to_id: task.related_to_id || "",
         description: task.description || ""
       });
     } else {
       setSelectedTask(null);
-      setFormData({ title: "", priority: "Medium", due_date: "", related_company_id: "", description: "" });
+      setFormData({ title: "", priority: "Medium", due_date: "", related_to_type: "", related_to_id: "", description: "" });
     }
     setIsDrawerOpen(true);
   };
@@ -112,20 +116,37 @@ export default function TasksPage() {
       {/* Header Section */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Tasks</h1>
+          <h1 className="text-2xl font-bold text-text-primary mb-1">Tasks</h1>
           <p className="text-text-secondary text-sm">Organize your workflow and follow-ups</p>
         </div>
         <button 
           onClick={() => openDrawer()}
-          className="bg-brand-primary hover:bg-brand-accent text-white px-4 py-2 rounded-md font-bold flex items-center gap-2 transition-all shadow-lg shadow-brand-primary/20 transform active:scale-[0.98]"
+          className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
-          Add Task
+          <span className="hidden sm:inline">Add Task</span>
+          <span className="sm:hidden">Add</span>
+        </button>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="bg-bg-surface border border-border-main p-4 rounded-card flex flex-col sm:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
+          <input 
+            type="text" 
+            placeholder="Search tasks..." 
+            className="w-full bg-bg-page border border-border-input text-text-primary pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm shadow-sm"
+          />
+        </div>
+        <button className="w-full sm:w-auto btn-ghost border border-border-main flex items-center justify-center gap-2 shadow-sm">
+          <Filter size={16} />
+          Filters
         </button>
       </div>
 
       {/* List View */}
-      <div className="space-y-6">
+      <div className="space-y-6 flex-1 flex flex-col min-h-0">
         {isLoading ? (
           <LoadingSpinner message="Loading tasks..." />
         ) : isError ? (
@@ -139,68 +160,72 @@ export default function TasksPage() {
               Try again
             </button>
           </div>
-        ) : (!tasks || tasks.length === 0) ? (
+        ) : (!tasks || tasks.filter(t => t && (t.id || t._id)).length === 0) ? (
           <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-border-main rounded-card">
-            <div className="p-4 bg-white/5 rounded-full text-text-tertiary mb-4">
+            <div className="p-4 bg-brand-primary/10 rounded-full text-brand-primary mb-4">
               <CheckSquare size={32} />
             </div>
-            <h3 className="text-white font-bold">No tasks yet</h3>
+            <h3 className="text-text-primary font-bold">No tasks yet</h3>
             <p className="text-text-secondary text-sm mt-1">Create your first task to stay organized.</p>
           </div>
         ) : (
-          <div className="bg-bg-surface border border-border-main rounded-card overflow-hidden">
-            {tasks?.filter(t => t && (t.id || t._id)).map((task) => (
-              <div key={task.id || task._id} className="bg-bg-surface border border-border-main rounded-card p-5 hover:border-brand-primary/40 transition-all group relative">
-              <div className="flex items-center gap-4">
-                <button className="w-6 h-6 rounded-full border-2 border-border-main hover:border-brand-primary transition-colors flex items-center justify-center group/check">
-                  <div className="w-2.5 h-2.5 rounded-full bg-brand-primary scale-0 group-hover/check:scale-100 transition-transform"></div>
-                </button>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-white group-hover:text-brand-primary transition-colors truncate">{task.title}</h3>
-                  <div className="flex items-center gap-4 mt-1">
-                    <div className="flex items-center gap-1.5 text-text-tertiary">
-                      <Calendar size={14} />
-                      <span className="text-xs">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</span>
-                    </div>
-                    {task.related_company_id && (
-                      <div className="flex items-center gap-1.5 text-text-tertiary">
-                        <Building2 size={14} />
-                        <span className="text-xs">Linked</span>
+          <div className="bg-bg-surface border border-border-main rounded-card overflow-hidden flex flex-col">
+            <div className="overflow-y-auto max-h-[calc(100vh-220px)] p-2">
+              <div className="space-y-2">
+                {tasks?.filter(t => t && (t.id || t._id)).map((task) => (
+                  <div key={task.id || task._id} className="bg-bg-surface border border-border-main rounded-card p-4 hover:border-brand-primary/40 transition-all group relative">
+                    <div className="flex items-center gap-4">
+                      <button className="w-6 h-6 rounded-full border-2 border-border-main hover:border-brand-primary transition-colors flex items-center justify-center group/check flex-shrink-0">
+                        <div className="w-2.5 h-2.5 rounded-full bg-brand-primary scale-0 group-hover/check:scale-100 transition-transform"></div>
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-text-primary group-hover:text-brand-primary transition-colors truncate">{task.title}</h3>
+                        <div className="flex items-center gap-4 mt-1">
+                          <div className="flex items-center gap-1.5 text-text-tertiary">
+                            <Calendar size={14} />
+                            <span className="text-xs">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</span>
+                          </div>
+                          {task.related_to_type === 'company' && (
+                            <div className="flex items-center gap-1.5 text-text-tertiary">
+                              <Building2 size={14} />
+                              <span className="text-xs">
+                                {companies?.find(c => (c.id || c._id) === task.related_to_id)?.name || "Linked"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${
+                          task.priority === 'High' ? 'bg-danger/10 text-danger' : 
+                          task.priority === 'Medium' ? 'bg-warning/10 text-warning' : 
+                          'bg-success/10 text-success'
+                        }`}>
+                          {task.priority}
+                        </span>
+                        <div className="flex items-center gap-1 transition-opacity">
+                          <button 
+                            onClick={() => openDrawer(task)}
+                            className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const taskId = task.id || task._id;
+                              if (taskId && confirm(`Delete ${task.title}?`)) deleteMutation.mutate(taskId);
+                            }}
+                            className="p-1 hover:text-danger text-text-tertiary transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${
-                    task.priority === 'High' ? 'bg-danger/10 text-danger' : 
-                    task.priority === 'Medium' ? 'bg-warning/10 text-warning' : 
-                    'bg-success/10 text-success'
-                  }`}>
-                    {task.priority}
-                  </span>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={() => openDrawer(task)}
-                      title="Edit task"
-                      className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button 
-                      onClick={() => {
-                        const taskId = task.id || task._id;
-                        if (taskId && confirm(`Delete ${task.title}?`)) deleteMutation.mutate(taskId);
-                      }}
-                      title="Delete task"
-                      className="p-1 hover:text-danger text-text-tertiary transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
-            ))}
           </div>
         )}
       </div>
@@ -228,7 +253,7 @@ export default function TasksPage() {
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
                 placeholder="Follow up on proposal" 
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
               />
             </div>
 
@@ -238,7 +263,7 @@ export default function TasksPage() {
                 <select 
                   value={formData.priority}
                   onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                  className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+                  className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
                 >
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
@@ -252,23 +277,28 @@ export default function TasksPage() {
                   type="date" 
                   value={formData.due_date}
                   onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                  className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+                  className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Related Company</label>
-              <select 
-                value={formData.related_company_id}
-                onChange={(e) => setFormData({...formData, related_company_id: e.target.value})}
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
-              >
-                <option value="">None</option>
-                {companies?.filter(c => c && (c.id || c._id)).map(c => (
-                  <option key={c.id || c._id} value={c.id || c._id}>{c.name}</option>
-                ))}
-              </select>
+              <Combobox 
+                options={companies ? companies.filter(c => c && (c.id || c._id)).map(c => ({ 
+                  id: c.id || c._id || "", 
+                  label: c.name 
+                })) : []}
+                value={formData.related_to_id}
+                onChange={(val) => {
+                  setFormData({
+                    ...formData, 
+                    related_to_id: val,
+                    related_to_type: val ? 'company' : ''
+                  });
+                }}
+                placeholder="Search for a company..."
+              />
             </div>
 
             <div className="space-y-1">
@@ -278,7 +308,7 @@ export default function TasksPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 placeholder="Add any additional details here..." 
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm resize-none"
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm resize-none"
               />
             </div>
           </div>
@@ -287,14 +317,14 @@ export default function TasksPage() {
             <button 
               type="button"
               onClick={closeDrawer}
-              className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-md transition-all"
+              className="flex-1 btn-ghost border border-border-main font-bold"
             >
               Cancel
             </button>
             <button 
               type="submit"
               disabled={taskMutation.isPending}
-              className="flex-1 bg-brand-primary hover:bg-brand-accent text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex-1 btn-primary font-bold flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {taskMutation.isPending && <Loader2 className="animate-spin" size={18} />}
               {taskMutation.isPending ? "Saving..." : (selectedTask ? "Update Task" : "Save Task")}

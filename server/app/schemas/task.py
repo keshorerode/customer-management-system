@@ -8,10 +8,10 @@ class TaskBase(BaseModel):
     due_date: Optional[datetime] = None
     priority: str = "Medium"
     status: str = "Todo"
-    related_company_id: Optional[str] = None
-    related_person_id: Optional[str] = None
+    related_to_type: Optional[str] = None
+    related_to_id: Optional[str] = None
 
-    @field_validator("description", "due_date", "related_company_id", "related_person_id", mode="before")
+    @field_validator("description", "due_date", "related_to_type", "related_to_id", mode="before")
     @classmethod
     def empty_string_to_none(cls, v):
         if v == "":

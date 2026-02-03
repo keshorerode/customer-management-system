@@ -10,8 +10,8 @@ class Task(Document):
     due_date: Optional[datetime] = None
     priority: str = "Medium" # Low, Medium, High, Urgent
     status: str = "Todo" # Todo, In Progress, Completed, Archived
-    related_company: Optional[Link[Company]] = None
-    related_person: Optional[Link[Person]] = None
+    related_to_type: Optional[str] = None # company, deal, lead, person
+    related_to_id: Optional[str] = None
     owner_id: Optional[str] = None # User UUID
     created_at: datetime = datetime.utcnow()
     updated_at: datetime = datetime.utcnow()

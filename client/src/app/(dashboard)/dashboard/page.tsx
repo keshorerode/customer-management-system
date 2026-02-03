@@ -15,7 +15,7 @@ export default function DashboardPage() {
         {stats.map((stat) => (
           <div key={stat.name} className="bg-bg-surface border border-border-main p-6 rounded-card">
             <div className="flex justify-between items-start mb-4">
-              <div className="p-2 bg-white/5 rounded-md text-brand-primary">
+              <div className="p-2 bg-brand-primary/10 rounded-md text-brand-primary">
                 <stat.icon size={20} />
               </div>
               {stat.change && (
@@ -27,7 +27,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-text-secondary text-sm font-medium">{stat.name}</div>
-              <div className="text-2xl font-bold text-white mt-1">{stat.value}</div>
+              <div className="text-2xl font-bold text-text-primary mt-1">{stat.value}</div>
             </div>
           </div>
         ))}
@@ -37,7 +37,7 @@ export default function DashboardPage() {
         {/* Main Chart Placeholder */}
         <div className="lg:col-span-2 bg-bg-surface border border-border-main rounded-card p-6 min-h-[400px]">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-white">Sales Pipeline</h3>
+            <h3 className="font-bold text-text-primary">Sales Pipeline</h3>
             <select className="bg-bg-page border border-border-main text-xs text-text-secondary rounded px-2 py-1 outline-none">
               <option>Last 30 Days</option>
               <option>Last 90 Days</option>
@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
         {/* Recent Activity */}
         <div className="bg-bg-surface border border-border-main rounded-card p-6">
-          <h3 className="font-bold text-white mb-6">Recent Activity</h3>
+          <h3 className="font-bold text-text-primary mb-6">Recent Activity</h3>
           <div className="space-y-6">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex gap-4">
@@ -58,7 +58,7 @@ export default function DashboardPage() {
                   JS
                 </div>
                 <div>
-                  <div className="text-sm text-white">
+                  <div className="text-sm text-text-primary">
                     <span className="font-bold">John Smith</span> moved <span className="text-brand-primary font-medium">Acme Corp</span> to <span className="text-success font-medium">Qualified</span>
                   </div>
                   <div className="text-xs text-text-tertiary mt-1">2 hours ago</div>

@@ -1,12 +1,14 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Filter, Loader2, Package, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Filter, Loader2, Package, Pencil, Trash2, Building2, IndianRupee } from "lucide-react";
 import { useState } from "react";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import SlideOver from "@/components/SlideOver";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import NotesSection from "@/components/NotesSection";
+import Combobox from "@/components/Combobox";
 
 interface Product {
   id?: string;
@@ -18,6 +20,7 @@ interface Product {
   currency: string;
   category: string;
   status: string;
+  company_id?: string;
 }
 
 export default function ProductsPage() {
@@ -27,9 +30,10 @@ export default function ProductsPage() {
     name: "",
     code: "",
     category: "Software",
-    price: 0,
+    price: "" as string | number,
     currency: "INR",
     status: "active",
+    company_id: "",
     description: ""
   });
   const [formError, setFormError] = useState("");
@@ -45,7 +49,16 @@ export default function ProductsPage() {
     }
   });
 
-  // 2. Create/Update Product Mutation
+  // 2. Fetch Companies
+  const { data: companies } = useQuery<Array<{id: string, _id?: string, name: string}>>({
+    queryKey: ["companies"],
+    queryFn: async () => {
+      const response = await api.get("/companies/");
+      return response.data;
+    }
+  });
+
+  // 3. Create/Update Product Mutation
   const productMutation = useMutation({
     mutationFn: (data: Partial<Product>) => {
       if (selectedProduct) {
@@ -81,11 +94,12 @@ export default function ProductsPage() {
         price: product.price || 0,
         currency: product.currency || "INR",
         status: product.status || "active",
+        company_id: product.company_id || "",
         description: product.description || ""
       });
     } else {
       setSelectedProduct(null);
-      setFormData({ name: "", code: "", category: "Software", price: 0, currency: "INR", status: "active", description: "" });
+      setFormData({ name: "", code: "", category: "Software", price: "", currency: "INR", status: "active", company_id: "", description: "" });
     }
     setIsDrawerOpen(true);
   };
@@ -99,7 +113,11 @@ export default function ProductsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-    productMutation.mutate(formData);
+    const submissionData = {
+      ...formData,
+      price: Number(formData.price) || 0
+    };
+    productMutation.mutate(submissionData);
   };
 
   return (
@@ -107,12 +125,12 @@ export default function ProductsPage() {
       {/* Header Section */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Products</h1>
+          <h1 className="text-2xl font-bold text-text-primary mb-1">Products</h1>
           <p className="text-text-secondary text-sm">Manage your product catalog and pricing</p>
         </div>
         <button 
           onClick={() => openDrawer()}
-          className="bg-brand-primary hover:bg-brand-accent text-white px-4 py-2 rounded-md font-bold flex items-center gap-2 transition-all shadow-lg shadow-brand-primary/20 transform active:scale-[0.98]"
+          className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
           Add Product
@@ -126,10 +144,10 @@ export default function ProductsPage() {
           <input 
             type="text" 
             placeholder="Search products by name or code..." 
-            className="w-full bg-bg-page border border-border-input text-white pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+            className="w-full bg-bg-page border border-border-input text-text-primary pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm shadow-sm"
           />
         </div>
-        <button className="px-4 py-2 bg-white/5 border border-border-main text-text-secondary hover:text-white rounded-md flex items-center gap-2 transition-colors text-sm">
+        <button className="px-4 py-2 btn-ghost border border-border-main flex items-center gap-2 shadow-sm">
           <Filter size={16} />
           Filters
         </button>
@@ -151,14 +169,14 @@ export default function ProductsPage() {
         </div>
       ) : (!products || products.length === 0) ? (
         <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-border-main rounded-card">
-          <div className="p-4 bg-white/5 rounded-full text-text-tertiary mb-4">
+          <div className="p-4 bg-brand-primary/10 rounded-full text-brand-primary mb-4">
             <Package size={32} />
           </div>
-          <h3 className="text-white font-bold">No products found</h3>
+          <h3 className="text-text-primary font-bold">No products found</h3>
           <p className="text-text-secondary text-sm mt-1">Start by adding your first product to the catalog.</p>
           <button 
             onClick={() => openDrawer()}
-            className="mt-6 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-4 py-2 rounded-md font-bold transition-all"
+            className="mt-6 btn-primary"
           >
             Create Product
           </button>
@@ -168,10 +186,9 @@ export default function ProductsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {products?.filter(p => p && (p.id || p._id)).map((product) => (
             <div key={product.id || product._id} className="bg-bg-surface border border-border-main rounded-card p-6 hover:border-brand-primary/40 transition-all group relative">
-              <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-4 right-4 flex gap-1 transition-opacity">
                 <button 
                   onClick={() => openDrawer(product)}
-                  title="Edit product"
                   className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
                 >
                   <Pencil size={16} />
@@ -181,7 +198,6 @@ export default function ProductsPage() {
                     const productId = product.id || product._id;
                     if (productId && confirm(`Delete ${product.name}?`)) deleteMutation.mutate(productId);
                   }}
-                  title="Delete product"
                   className="p-1 hover:text-danger text-text-tertiary transition-colors"
                 >
                   <Trash2 size={16} />
@@ -196,18 +212,26 @@ export default function ProductsPage() {
               </div>
               
               <div className="min-h-[60px]">
-                <h3 className="text-lg font-bold text-white group-hover:text-brand-primary transition-colors line-clamp-1">{product.name}</h3>
+                <h3 className="text-lg font-bold text-text-primary group-hover:text-brand-primary transition-colors line-clamp-1">{product.name}</h3>
                 <p className="text-xs text-text-tertiary font-mono mt-1 uppercase tracking-widest">{product.code}</p>
+                {product.company_id && (
+                  <div className="flex items-center gap-1.5 mt-2 text-text-secondary">
+                    <Building2 size={12} />
+                    <span className="text-xs truncate max-w-[150px]">
+                      {companies?.find(c => c.id === product.company_id)?.name || "Unknown Company"}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-6 flex items-end justify-between">
                 <div>
                   <p className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">Starting from</p>
-                  <p className="text-xl font-bold text-white mt-1">
+                  <p className="text-xl font-bold text-text-primary mt-1">
                     {new Intl.NumberFormat('en-IN', { style: 'currency', currency: product.currency }).format(product.price)}
                   </p>
                 </div>
-                <div className="px-3 py-1 bg-white/5 rounded-full text-xs text-text-secondary">
+                <div className="px-3 py-1 bg-bg-muted rounded-full text-xs text-text-secondary border border-border-main">
                   {product.category}
                 </div>
               </div>
@@ -223,7 +247,7 @@ export default function ProductsPage() {
         title={selectedProduct ? "Edit Product" : "Add New Product"}
         description={selectedProduct ? "Update product information" : "Add a new product to your catalog"}
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} id="product-form" className="space-y-6">
           {formError && (
             <div className="p-3 bg-danger/10 border border-danger text-danger text-xs rounded">
               {formError}
@@ -239,7 +263,7 @@ export default function ProductsPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 placeholder="Enterprise CRM Plan" 
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors"
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors"
               />
             </div>
 
@@ -252,18 +276,24 @@ export default function ProductsPage() {
                   value={formData.code}
                   onChange={(e) => setFormData({...formData, code: e.target.value})}
                   placeholder="PRO-001" 
-                  className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm uppercase"
+                  className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm uppercase"
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Price (INR)</label>
-                <input 
-                  required
-                  type="number" 
-                  value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                  placeholder="4999" 
-                  className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
-                />
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary">
+                    <IndianRupee size={16} />
+                  </div>
+                  <input 
+                    required
+                    type="number" 
+                    value={formData.price} 
+                    onChange={e => setFormData({...formData, price: e.target.value})}
+                    placeholder="4999" 
+                    className="w-full bg-bg-muted border border-border-input text-text-primary pl-10 pr-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm no-spinners"
+                  />
+                </div>
               </div>
             </div>
 
@@ -272,7 +302,7 @@ export default function ProductsPage() {
               <select 
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
               >
                 <option value="Software">Software</option>
                 <option value="Service">Service</option>
@@ -282,35 +312,43 @@ export default function ProductsPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Description</label>
-              <textarea 
-                rows={4}
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Brief description of the product..." 
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm resize-none"
+              <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Associated Company</label>
+              <Combobox 
+                options={companies ? companies.filter(c => c && (c.id || c._id)).map(c => ({ id: (c.id || c._id || ""), label: c.name })) : []}
+                value={formData.company_id}
+                onChange={(val) => setFormData({...formData, company_id: val})}
+                placeholder="Search for a company..."
               />
             </div>
-          </div>
 
-          <div className="pt-6 border-t border-border-main flex gap-3">
-            <button 
-              type="button"
-              onClick={closeDrawer}
-              className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-md transition-all"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit"
-              disabled={productMutation.isPending}
-              className="flex-1 bg-brand-primary hover:bg-brand-accent text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {productMutation.isPending && <Loader2 className="animate-spin" size={18} />}
-              {productMutation.isPending ? "Saving..." : (selectedProduct ? "Update Product" : "Save Product")}
-            </button>
           </div>
         </form>
+
+        {selectedProduct && (selectedProduct.id || selectedProduct._id) && (
+          <NotesSection 
+            relatedToType="product" 
+            relatedToId={selectedProduct.id || selectedProduct._id || ""} 
+          />
+        )}
+
+        <div className="pt-8 border-t border-border-main flex gap-3 mt-4">
+          <button 
+            type="button"
+            onClick={closeDrawer}
+            className="flex-1 btn-ghost border border-border-main font-bold"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit"
+            form="product-form"
+            disabled={productMutation.isPending}
+            className="flex-1 btn-primary font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {productMutation.isPending && <Loader2 className="animate-spin" size={18} />}
+            {productMutation.isPending ? "Saving..." : (selectedProduct ? "Update Product" : "Save Product")}
+          </button>
+        </div>
       </SlideOver>
     </div>
   );

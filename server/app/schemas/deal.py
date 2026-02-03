@@ -4,7 +4,7 @@ from datetime import datetime
 
 class DealBase(BaseModel):
     title: str
-    amount: float
+    value: float
     stage: str = "Discovery" # Discovery, Proposal, Negotiation, Won, Lost
     expected_close_date: Optional[datetime] = None
     probability: int = 20
@@ -24,7 +24,7 @@ class DealCreate(DealBase):
 
 class DealUpdate(BaseModel):
     title: Optional[str] = None
-    amount: Optional[float] = None
+    value: Optional[float] = None
     stage: Optional[str] = None
     expected_close_date: Optional[datetime] = None
     probability: Optional[int] = None

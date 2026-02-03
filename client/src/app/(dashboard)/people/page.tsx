@@ -7,6 +7,8 @@ import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import SlideOver from "@/components/SlideOver";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import NotesSection from "@/components/NotesSection";
+import Combobox from "@/components/Combobox";
 
 interface Person {
   id?: string;
@@ -45,7 +47,7 @@ export default function PeoplePage() {
 
   // 2. Fetch Companies for the dropdown
   const { data: companies } = useQuery<Array<{id: string, _id?: string, name: string}>>({
-    queryKey: ["companies-list"],
+    queryKey: ["companies"],
     queryFn: async () => {
       const response = await api.get("/companies/");
       return response.data;
@@ -63,6 +65,7 @@ export default function PeoplePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["people"] });
+      queryClient.invalidateQueries({ queryKey: ["deals"] });
       closeDrawer();
     },
     onError: (err: unknown) => {
@@ -99,6 +102,7 @@ export default function PeoplePage() {
   const closeDrawer = () => {
     setIsDrawerOpen(false);
     setSelectedPerson(null);
+    setFormData({ first_name: "", last_name: "", email: "", job_title: "", phone: "", company_id: "" });
     setFormError("");
   };
 
@@ -126,14 +130,14 @@ export default function PeoplePage() {
 
     if (!people || people.length === 0) return (
       <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-border-main rounded-card">
-        <div className="p-4 bg-white/5 rounded-full text-text-tertiary mb-4">
+        <div className="p-4 bg-brand-primary/10 rounded-full text-brand-primary mb-4">
           <UserCircle size={32} />
         </div>
-        <h3 className="text-white font-bold">No contacts found</h3>
+        <h3 className="text-text-primary font-bold">No contacts found</h3>
         <p className="text-text-secondary text-sm mt-1">Add your first contact to start building relationships.</p>
         <button 
           onClick={() => openDrawer()}
-          className="mt-6 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white px-4 py-2 rounded-md font-bold transition-all"
+          className="mt-6 bg-brand-primary text-white hover:bg-brand-accent px-4 py-2 rounded-md font-bold transition-all shadow-lg shadow-brand-primary/20"
         >
           Create Contact
         </button>
@@ -147,10 +151,9 @@ export default function PeoplePage() {
           if (!personId) return null;
           return (
             <div key={personId} className="bg-bg-surface border border-border-main rounded-card p-6 hover:border-brand-primary/40 transition-all group relative">
-              <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-4 right-4 flex gap-1 transition-opacity">
                 <button 
                   onClick={() => openDrawer(person)}
-                  title="Edit contact"
                   className="p-1 hover:text-brand-primary text-text-tertiary transition-colors"
                 >
                   <Pencil size={16} />
@@ -160,7 +163,6 @@ export default function PeoplePage() {
                     const personId = person.id || person._id;
                     if (personId && confirm(`Delete ${person.first_name}?`)) deleteMutation.mutate(personId);
                   }}
-                  title="Delete contact"
                   className="p-1 hover:text-danger text-text-tertiary transition-colors"
                 >
                   <Trash2 size={16} />
@@ -168,10 +170,16 @@ export default function PeoplePage() {
               </div>
               
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary mb-4 border border-brand-primary/20 text-xl font-bold">
+                <div 
+                  onClick={() => openDrawer(person)}
+                  className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary mb-4 border border-brand-primary/20 text-xl font-bold cursor-pointer hover:bg-brand-primary/20 transition-colors"
+                >
                   {person.first_name[0]}{person.last_name[0]}
                 </div>
-                <h3 className="text-lg font-bold text-white group-hover:text-brand-primary transition-colors truncate w-full">
+                <h3 
+                  onClick={() => openDrawer(person)}
+                  className="text-lg font-bold text-text-primary group-hover:text-brand-primary transition-colors truncate w-full cursor-pointer"
+                >
                   {person.first_name} {person.last_name}
                 </h3>
                 <p className="text-xs text-brand-primary font-medium mt-1 truncate w-full">{person.job_title || "Contact"}</p>
@@ -184,12 +192,12 @@ export default function PeoplePage() {
                 </div>
 
                 <div className="mt-6 w-full space-y-3 pt-6 border-t border-border-main text-left">
-                  <div className="flex items-center gap-3 text-text-tertiary hover:text-white transition-colors cursor-pointer group/item overflow-hidden">
+                  <div className="flex items-center gap-3 text-text-tertiary hover:text-text-primary transition-colors cursor-pointer group/item overflow-hidden">
                     <Mail size={14} className="flex-shrink-0" />
                     <span className="text-xs truncate">{person.email}</span>
                   </div>
                   {person.phone && (
-                    <div className="flex items-center gap-3 text-text-tertiary hover:text-white transition-colors cursor-pointer overflow-hidden">
+                    <div className="flex items-center gap-3 text-text-tertiary hover:text-text-primary transition-colors cursor-pointer overflow-hidden">
                       <Phone size={14} className="flex-shrink-0" />
                       <span className="text-xs truncate">{person.phone}</span>
                     </div>
@@ -208,12 +216,12 @@ export default function PeoplePage() {
       {/* Header Section */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">People</h1>
+          <h1 className="text-2xl font-bold text-text-primary mb-1">People</h1>
           <p className="text-text-secondary text-sm">Manage your contacts and their relationships</p>
         </div>
         <button 
           onClick={() => openDrawer()}
-          className="bg-brand-primary hover:bg-brand-accent text-white px-4 py-2 rounded-md font-bold flex items-center gap-2 transition-all shadow-lg shadow-brand-primary/20 transform active:scale-[0.98]"
+          className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
           Add Person
@@ -227,10 +235,10 @@ export default function PeoplePage() {
           <input 
             type="text" 
             placeholder="Search contacts by name, email, or company..." 
-            className="w-full bg-bg-page border border-border-input text-white pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+            className="w-full bg-bg-page border border-border-input text-text-primary pl-10 pr-4 py-2 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm shadow-sm"
           />
         </div>
-        <button className="px-4 py-2 bg-white/5 border border-border-main text-text-secondary hover:text-white rounded-md flex items-center gap-2 transition-colors text-sm">
+        <button className="px-4 py-2 btn-ghost border border-border-main flex items-center gap-2 shadow-sm">
           <Filter size={16} />
           Filters
         </button>
@@ -246,7 +254,7 @@ export default function PeoplePage() {
         title={selectedPerson ? "Edit Person" : "Add New Person"}
         description={selectedPerson ? "Update contact profile" : "Create a new contact profile"}
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} id="contact-form" className="space-y-6">
           {formError && (
             <div className="p-3 bg-danger/10 border border-danger text-danger text-xs rounded">
               {formError}
@@ -263,7 +271,7 @@ export default function PeoplePage() {
                   value={formData.first_name}
                   onChange={(e) => setFormData({...formData, first_name: e.target.value})}
                   placeholder="Jane" 
-                  className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+                  className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
                 />
               </div>
               <div className="space-y-1">
@@ -274,7 +282,7 @@ export default function PeoplePage() {
                   value={formData.last_name}
                   onChange={(e) => setFormData({...formData, last_name: e.target.value})}
                   placeholder="Doe" 
-                  className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+                  className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
                 />
               </div>
             </div>
@@ -287,7 +295,7 @@ export default function PeoplePage() {
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 placeholder="jane.doe@company.com" 
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
               />
             </div>
 
@@ -298,22 +306,21 @@ export default function PeoplePage() {
                 value={formData.job_title}
                 onChange={(e) => setFormData({...formData, job_title: e.target.value})}
                 placeholder="Marketing Manager" 
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
               />
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Associated Company</label>
-              <select 
+              <Combobox 
+                options={companies ? companies.filter(c => c && (c.id || c._id)).map(c => ({ 
+                  id: c.id || c._id || "", 
+                  label: c.name 
+                })) : []}
                 value={formData.company_id}
-                onChange={(e) => setFormData({...formData, company_id: e.target.value})}
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
-              >
-                <option value="">None / Individual</option>
-                {companies?.filter(c => c && (c.id || c._id)).map(c => (
-                  <option key={c.id || c._id} value={c.id || c._id}>{c.name}</option>
-                ))}
-              </select>
+                onChange={(val) => setFormData({...formData, company_id: val})}
+                placeholder="Search for a company..."
+              />
             </div>
 
             <div className="space-y-1">
@@ -323,29 +330,37 @@ export default function PeoplePage() {
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 placeholder="+91 98765 43210" 
-                className="w-full bg-bg-page border border-border-input text-white px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
+                className="w-full bg-bg-muted border border-border-input text-text-primary px-4 py-3 rounded-md focus:outline-none focus:border-brand-primary transition-colors text-sm"
               />
             </div>
           </div>
-
-          <div className="pt-6 border-t border-border-main flex gap-3">
-            <button 
-              type="button"
-              onClick={closeDrawer}
-              className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-md transition-all"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit"
-              disabled={personMutation.isPending}
-              className="flex-1 bg-brand-primary hover:bg-brand-accent text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {personMutation.isPending && <Loader2 className="animate-spin" size={18} />}
-              {personMutation.isPending ? "Saving..." : (selectedPerson ? "Update Contact" : "Save Contact")}
-            </button>
-          </div>
         </form>
+
+        {selectedPerson && (selectedPerson.id || selectedPerson._id) && (
+          <NotesSection 
+            relatedToType="person" 
+            relatedToId={selectedPerson.id || selectedPerson._id || ""} 
+          />
+        )}
+
+        <div className="pt-8 border-t border-border-main flex gap-3 mt-4">
+          <button 
+            type="button"
+            onClick={closeDrawer}
+            className="flex-1 btn-ghost border border-border-main font-bold"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit"
+            form="contact-form"
+            disabled={personMutation.isPending}
+            className="flex-1 btn-primary font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {personMutation.isPending && <Loader2 className="animate-spin" size={18} />}
+            {personMutation.isPending ? "Saving..." : (selectedPerson ? "Update Contact" : "Save Contact")}
+          </button>
+        </div>
       </SlideOver>
     </div>
   );

@@ -1,8 +1,12 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
+// Use environment variable with fallback for local development
+// NEXT_PUBLIC_ prefix is required for Next.js client-side env vars
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8003/api';
+
 const api = axios.create({
-    baseURL: 'http://localhost:8001/api', // Updated to 8001 to match our server
+    baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },

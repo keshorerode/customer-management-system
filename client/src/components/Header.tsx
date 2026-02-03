@@ -9,11 +9,11 @@ interface HeaderProps {
 
 export default function Header({ title, onMenuClick }: HeaderProps) {
   return (
-    <header className="h-[64px] border-b border-border-main bg-bg-page/80 backdrop-blur-md sticky top-0 z-30 flex items-center px-4 md:px-8 gap-4">
+    <header className="h-[72px] glass sticky top-0 z-30 flex items-center px-6 md:px-8 gap-4 shadow-sm">
       {/* Mobile Menu Toggle */}
       <button 
         onClick={onMenuClick}
-        className="lg:hidden text-text-tertiary hover:text-white p-1"
+        className="lg:hidden text-text-secondary hover:bg-bg-muted p-2 rounded-md transition-colors"
       >
         <Menu size={20} />
       </button>
@@ -27,8 +27,8 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
           <input 
             type="text" 
-            placeholder="Search..." 
-            className="w-full bg-bg-surface border border-border-main rounded-md py-1.5 pl-10 pr-4 text-sm focus:outline-none focus:border-brand-primary transition-colors text-white"
+            placeholder="Search leads, companies, contacts..." 
+            className="w-full bg-bg-page border border-border-input rounded-md py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-brand-primary transition-colors text-text-primary placeholder:text-text-tertiary shadow-sm"
           />
         </div>
       </div>
@@ -41,10 +41,10 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
 
         <div className="hidden sm:block w-[1px] h-6 bg-border-main mx-1"></div>
 
-        <button className="text-text-tertiary hover:text-text-primary transition-colors hidden xs:block">
+        <button className="text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5 p-2 rounded-full transition-colors hidden xs:block">
           <Bell size={20} />
         </button>
-        <button className="text-text-tertiary hover:text-text-primary transition-colors hidden sm:block">
+        <button className="text-text-secondary hover:text-brand-primary hover:bg-brand-primary/5 p-2 rounded-full transition-colors hidden sm:block">
           <HelpCircle size={20} />
         </button>
       </div>
